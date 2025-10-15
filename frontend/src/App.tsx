@@ -33,7 +33,7 @@ export default function App() {
 
     if (error === 'access_denied') {
       // OAuth was cancelled, redirect to login
-      window.location.href = 'https://matchchain-ui.vercel.app/login'
+      window.location.href = `${window.location.origin}/login`
       return
     }
 
