@@ -26,6 +26,18 @@ export default function App() {
   const { alert, showAlert, closeAlert } = useAlert()
 
   useEffect(() => {
+    // Check if OAuth was cancelled (error in URL)
+    const urlParams = new URLSearchParams(window.location.search)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    const error = urlParams.get('error') || hashParams.get('error')
+    const errorDescription = urlParams.get('error_description') || hashParams.get('error_description')
+
+    if (error === 'access_denied') {
+      // OAuth was cancelled, redirect to login
+      window.location.href = 'https://matchchain-ui.vercel.app/login'
+      return
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       // Check if signup is in progress
       const signupInProgress = localStorage.getItem('signup_in_progress')
