@@ -30,7 +30,6 @@ export default function App() {
     const urlParams = new URLSearchParams(window.location.search)
     const hashParams = new URLSearchParams(window.location.hash.substring(1))
     const error = urlParams.get('error') || hashParams.get('error')
-    const errorDescription = urlParams.get('error_description') || hashParams.get('error_description')
 
     if (error === 'access_denied') {
       // OAuth was cancelled, redirect to login
