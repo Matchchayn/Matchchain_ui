@@ -170,11 +170,14 @@ export default function Signup() {
         provider,
         options: {
           redirectTo: `${window.location.origin}/`,
+          skipBrowserRedirect: false,
         },
       })
       if (error) throw error
     } catch (error: any) {
       setMessage(error.error_description || error.message)
+      // Redirect to login page if authentication is cancelled
+      window.location.href = 'https://matchchain-ui.vercel.app/login'
     } finally {
       setIsLoading(false)
     }
