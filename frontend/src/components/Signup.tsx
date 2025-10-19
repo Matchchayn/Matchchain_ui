@@ -16,7 +16,6 @@ export default function Signup() {
   })
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -33,13 +32,6 @@ export default function Signup() {
   }
 
   const passwordStrength = getPasswordStrength(password)
-  const getStrengthLabel = () => {
-    if (passwordStrength === 0) return 'Poor'
-    if (passwordStrength === 1) return 'Weak'
-    if (passwordStrength === 2) return 'Normal'
-    if (passwordStrength === 3) return 'Normal'
-    return 'Strong'
-  }
 
   const getStrengthColor = () => {
     if (passwordStrength === 0) return 'bg-red-500'
@@ -75,7 +67,7 @@ export default function Signup() {
       localStorage.setItem('signup_in_progress', 'true')
       localStorage.setItem('signup_email', email)
 
-      const { data, error } = await supabase.auth.signInWithOtp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           shouldCreateUser: true,

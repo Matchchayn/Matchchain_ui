@@ -209,7 +209,6 @@ export default function App() {
   // Remove loading screen - let content load in background
 
   // Check if signup is in progress
-  const signupInProgress = localStorage.getItem('signup_in_progress')
   const needsPassword = localStorage.getItem('signup_needs_password')
   const passwordResetInProgress = localStorage.getItem('password_reset_in_progress')
 
