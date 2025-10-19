@@ -6,14 +6,48 @@ import RelaxConnectMatchCard from './RelaxConnectMatchCard'
 type SignupStep = 'email' | 'otp' | 'password'
 
 export default function Signup() {
-  const [step, setStep] = useState<SignupStep>('email')
-  const [email, setEmail] = useState('')
+  const [step, setStep] = useState<SignupStep>(() => {
+    // Restore step from localStorage if user is in password setup
+    const needsPassword = localStorage.getItem('signup_needs_password')
+    return needsPassword === 'true' ? 'password' : 'email'
+  })
+  const [email, setEmail] = useState(() => {
+    return localStorage.getItem('signup_email') || ''
+  })
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+
+  // Password strength calculation
+  const getPasswordStrength = (pwd: string) => {
+    let strength = 0
+    if (pwd.length >= 8) strength++
+    if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) strength++
+    if (/[0-9]/.test(pwd)) strength++
+    if (/[^a-zA-Z0-9]/.test(pwd)) strength++
+    return strength
+  }
+
+  const passwordStrength = getPasswordStrength(password)
+  const getStrengthLabel = () => {
+    if (passwordStrength === 0) return 'Poor'
+    if (passwordStrength === 1) return 'Weak'
+    if (passwordStrength === 2) return 'Normal'
+    if (passwordStrength === 3) return 'Normal'
+    return 'Strong'
+  }
+
+  const getStrengthColor = () => {
+    if (passwordStrength === 0) return 'bg-red-500'
+    if (passwordStrength === 1) return 'bg-orange-500'
+    if (passwordStrength === 2) return 'bg-yellow-500'
+    if (passwordStrength === 3) return 'bg-blue-500'
+    return 'bg-green-500'
+  }
 
   // Cleanup signup flag on unmount
   useEffect(() => {
@@ -39,18 +73,26 @@ export default function Signup() {
 
       // Set signup_in_progress flag for email/OTP flow only
       localStorage.setItem('signup_in_progress', 'true')
+      localStorage.setItem('signup_email', email)
 
-      const { error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           shouldCreateUser: true,
           emailRedirectTo: undefined,
         },
       })
+
       if (error) throw error
+
+      // Check if this created a new user or is an existing user
+      // Supabase will send OTP to new users and magic link to existing users
+      // We can't reliably prevent this on the client side, but we can inform the user
+
       setStep('otp')
       setMessage('Check your email for the 6-digit verification code')
     } catch (error: any) {
+      localStorage.removeItem('signup_in_progress')
       setMessage(error.error_description || error.message)
     } finally {
       setIsLoading(false)
@@ -84,6 +126,11 @@ export default function Signup() {
     try {
       setIsLoading(true)
       setMessage('')
+
+      // Ensure the signup_in_progress flag is set BEFORE verifying OTP
+      localStorage.setItem('signup_in_progress', 'true')
+      localStorage.setItem('signup_needs_password', 'true')
+
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: otpCode,
@@ -93,11 +140,14 @@ export default function Signup() {
 
       console.log('OTP verified, user session:', data.session)
 
-      // Check if user already has a password set
+      // User is now logged in, proceed to password setup
       if (data.session) {
-        // User is now logged in, proceed to password setup
+        console.log('Setting step to password')
         setStep('password')
         setMessage('')
+      } else {
+        console.error('No session after OTP verification')
+        setMessage('Verification failed. Please try again.')
       }
     } catch (error: any) {
       setMessage(error.error_description || error.message)
@@ -110,13 +160,24 @@ export default function Signup() {
   const handlePasswordSetup = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (password !== confirmPassword) {
-      setMessage('Passwords do not match')
+    // Check all password requirements
+    if (password.length < 8) {
+      setMessage('Password must be at least 8 characters')
       return
     }
 
-    if (password.length < 6) {
-      setMessage('Password must be at least 6 characters')
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password)) {
+      setMessage('Password must contain 1 capital letter')
+      return
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setMessage('Password must contain 1 number')
+      return
+    }
+
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+      setMessage('Password must contain 1 special letter')
       return
     }
 
@@ -128,9 +189,19 @@ export default function Signup() {
       })
       if (error) throw error
 
-      // Clear signup flag and redirect to home (triggers onboarding)
-      localStorage.removeItem('signup_in_progress')
-      window.location.href = '/'
+      // Show success message briefly before redirecting
+      setMessage('Password set successfully! Starting onboarding...')
+
+      // Small delay to ensure password is saved
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Clear only the password-related flags, keep signup_in_progress until onboarding is done
+      localStorage.removeItem('signup_needs_password')
+      localStorage.removeItem('signup_email')
+      // Don't remove signup_in_progress yet - it will be removed after onboarding completes
+
+      // Force reload to trigger onboarding
+      window.location.reload()
     } catch (error: any) {
       setMessage(error.error_description || error.message)
     } finally {
@@ -159,12 +230,12 @@ export default function Signup() {
   }
 
   // Handle social signup
-  const handleSocialSignup = async (provider: 'github' | 'discord') => {
+  const handleSocialSignup = async (provider: 'apple' | 'discord') => {
     try {
       setIsLoading(true)
       setMessage('')
-      // Remove signup_in_progress flag for OAuth - they don't need password setup
-      localStorage.removeItem('signup_in_progress')
+      // Keep signup_in_progress flag for OAuth - they will go through onboarding
+      localStorage.setItem('signup_in_progress', 'true')
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -281,13 +352,13 @@ export default function Signup() {
               <div className="flex justify-center gap-4">
                 <button
                   type="button"
-                  onClick={() => handleSocialSignup('github')}
+                  onClick={() => handleSocialSignup('apple')}
                   disabled={isLoading}
-                  className="w-14 h-14 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
-                  title="Sign up with Github"
+                  className="w-14 h-14 bg-black rounded-full flex items-center justify-center hover:bg-gray-900 transition-colors disabled:opacity-50"
+                  title="Sign up with Apple"
                 >
-                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#000">
-                    <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#fff">
+                    <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
                   </svg>
                 </button>
                 <button
@@ -362,11 +433,11 @@ export default function Signup() {
 
           {/* STEP 3: Set Password */}
           {step === 'password' && (
-            <form onSubmit={handlePasswordSetup} className="space-y-4">
-              <div className="text-center mb-6">
+            <form onSubmit={handlePasswordSetup} className="space-y-6">
+              <div className="text-center mb-4">
                 <h3 className="text-2xl font-bold text-white mb-2">Set Password</h3>
                 <p className="text-sm text-gray-400">
-                  Set the password for your account so you can login and access all features.
+                  Secure your account by setting a password you'll remember.
                 </p>
               </div>
 
@@ -374,48 +445,124 @@ export default function Signup() {
                 <label htmlFor="password" className="block text-gray-300 text-sm mb-2">
                   Password
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full px-4 py-3 bg-transparent border border-purple-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                  required
-                  disabled={isLoading}
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="●●●●●●●●●●●●"
+                    className="w-full px-4 py-3 bg-transparent border border-purple-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                    required
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
+                {/* Password Strength Indicator */}
+                {password && (
+                  <div className="mt-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="flex gap-1 flex-1">
+                        <div className={`h-1 flex-1 rounded-full ${passwordStrength >= 1 ? getStrengthColor() : 'bg-gray-700'}`}></div>
+                        <div className={`h-1 flex-1 rounded-full ${passwordStrength >= 2 ? getStrengthColor() : 'bg-gray-700'}`}></div>
+                        <div className={`h-1 flex-1 rounded-full ${passwordStrength >= 3 ? getStrengthColor() : 'bg-gray-700'}`}></div>
+                        <div className={`h-1 flex-1 rounded-full ${passwordStrength >= 4 ? getStrengthColor() : 'bg-gray-700'}`}></div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>Poor</span>
+                      <span>Weak</span>
+                      <span>Normal</span>
+                      <span>Strong</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div>
-                <label htmlFor="confirmPassword" className="block text-gray-300 text-sm mb-2">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your password"
-                  className="w-full px-4 py-3 bg-transparent border border-purple-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                  required
-                  disabled={isLoading}
-                />
+              {/* Password Requirements */}
+              <div className="space-y-2">
+                <p className="text-sm text-gray-400">Your password must contain the following</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    {password.length >= 8 ? (
+                      <span className="text-green-500">✓</span>
+                    ) : (
+                      <span className="text-gray-500">●</span>
+                    )}
+                    <span className={password.length >= 8 ? 'text-white' : 'text-gray-400'}>
+                      Minimum of 8 characters
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {(/[a-z]/.test(password) && /[A-Z]/.test(password)) ? (
+                      <span className="text-green-500">✓</span>
+                    ) : (
+                      <span className="text-gray-500">●</span>
+                    )}
+                    <span className={(/[a-z]/.test(password) && /[A-Z]/.test(password)) ? 'text-white' : 'text-gray-400'}>
+                      Contains 1 capital letter
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/[0-9]/.test(password) ? (
+                      <span className="text-green-500">✓</span>
+                    ) : (
+                      <span className="text-gray-500">●</span>
+                    )}
+                    <span className={/[0-9]/.test(password) ? 'text-white' : 'text-gray-400'}>
+                      Contains 1 number
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/[^a-zA-Z0-9]/.test(password) ? (
+                      <span className="text-green-500">✓</span>
+                    ) : (
+                      <span className="text-gray-500">●</span>
+                    )}
+                    <span className={/[^a-zA-Z0-9]/.test(password) ? 'text-white' : 'text-gray-400'}>
+                      Contains 1 special letter
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading || !password || !confirmPassword}
+                disabled={isLoading || passwordStrength < 4}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 disabled:cursor-not-allowed text-white font-semibold rounded-full transition-colors"
               >
-                {isLoading ? 'Setting up...' : 'Get Started'}
+                {isLoading ? 'Setting up...' : 'Set Password'}
               </button>
 
               {/* Message */}
               {message && (
-                <div className="text-center text-sm text-red-400">
+                <div className={`text-center text-sm ${message.includes('success') ? 'text-green-400' : 'text-red-400'}`}>
                   {message}
                 </div>
               )}
+
+              {/* Terms */}
+              <p className="text-xs text-center text-gray-500">
+                By continuing, you agree to matchchayn{' '}
+                <a href="#" className="text-purple-500 hover:underline">Terms of service</a> and{' '}
+                <a href="#" className="text-purple-500 hover:underline">Privacy Policy</a>.
+              </p>
             </form>
           )}
         </div>

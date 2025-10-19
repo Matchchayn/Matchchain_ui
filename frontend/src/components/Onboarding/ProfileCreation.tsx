@@ -1,17 +1,27 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../client'
 import type { Session } from '@supabase/supabase-js'
-import Avatar from '../Avatar'
 import RelaxConnectMatchCard from '../RelaxConnectMatchCard'
 
 interface ProfileCreationProps {
   session: Session
   onComplete: () => void
+  onBack?: () => void
 }
 
-export default function ProfileCreation({ session, onComplete }: ProfileCreationProps) {
+export default function ProfileCreation({ session, onComplete, onBack }: ProfileCreationProps) {
   const [loading, setLoading] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onBack) {
+        onBack()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onBack])
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -35,7 +45,7 @@ export default function ProfileCreation({ session, onComplete }: ProfileCreation
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.first_name || !formData.last_name || !formData.username || !formData.dateofbirth) {
+    if (!formData.first_name || !formData.last_name || !formData.username || !formData.dateofbirth || !formData.country || !formData.city || !formData.gender || !formData.relationshipstatus) {
       return
     }
 
@@ -53,7 +63,6 @@ export default function ProfileCreation({ session, onComplete }: ProfileCreation
         gender: formData.gender,
         relationshipstatus: formData.relationshipstatus,
         bio: formData.bio,
-        avatar_url: avatarUrl,
         updated_at: new Date().toISOString(),
       })
 
@@ -106,15 +115,6 @@ export default function ProfileCreation({ session, onComplete }: ProfileCreation
             <p className="text-gray-400 text-sm">Complete your profile to find better matches</p>
           </div>
 
-          <div className="flex justify-center mb-4">
-            <Avatar
-              uid={session.user.id}
-              url={avatarUrl}
-              size={100}
-              onUpload={(url) => setAvatarUrl(url)}
-            />
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -161,6 +161,8 @@ export default function ProfileCreation({ session, onComplete }: ProfileCreation
                   value={formData.dateofbirth}
                   onChange={handleChange}
                   required
+                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                  min={new Date(new Date().setFullYear(new Date().getFullYear() - 100)).toISOString().split('T')[0]}
                   className="w-full px-3 py-2.5 bg-[#1f1f3a] border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 />
               </div>
@@ -174,6 +176,7 @@ export default function ProfileCreation({ session, onComplete }: ProfileCreation
                   name="country"
                   value={formData.country}
                   onChange={handleChange}
+                  required
                   className="w-full px-3 py-2.5 bg-[#1f1f3a] border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 />
               </div>
@@ -184,6 +187,7 @@ export default function ProfileCreation({ session, onComplete }: ProfileCreation
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
+                  required
                   className="w-full px-3 py-2.5 bg-[#1f1f3a] border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 />
               </div>
@@ -196,6 +200,7 @@ export default function ProfileCreation({ session, onComplete }: ProfileCreation
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
+                  required
                   className="w-full px-3 py-2.5 bg-[#1f1f3a] border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
                   <option value="">Select...</option>
@@ -210,6 +215,7 @@ export default function ProfileCreation({ session, onComplete }: ProfileCreation
                   name="relationshipstatus"
                   value={formData.relationshipstatus}
                   onChange={handleChange}
+                  required
                   className="w-full px-3 py-2.5 bg-[#1f1f3a] border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
                   <option value="">Select...</option>

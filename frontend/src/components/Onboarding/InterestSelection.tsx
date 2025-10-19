@@ -11,9 +11,10 @@ interface Interest {
 interface InterestSelectionProps {
   session: Session
   onComplete: () => void
+  onBack?: () => void
 }
 
-export default function InterestSelection({ session, onComplete }: InterestSelectionProps) {
+export default function InterestSelection({ session, onComplete, onBack }: InterestSelectionProps) {
   const [interests, setInterests] = useState<Interest[]>([])
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -21,6 +22,17 @@ export default function InterestSelection({ session, onComplete }: InterestSelec
   useEffect(() => {
     fetchInterests()
   }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onBack) {
+        onBack()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onBack])
 
   async function fetchInterests() {
     try {

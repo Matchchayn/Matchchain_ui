@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../client'
 import type { Session } from '@supabase/supabase-js'
 import RelaxConnectMatchCard from '../RelaxConnectMatchCard'
@@ -6,10 +6,22 @@ import RelaxConnectMatchCard from '../RelaxConnectMatchCard'
 interface PreferencesSelectionProps {
   session: Session
   onComplete: () => void
+  onBack?: () => void
 }
 
-export default function PreferencesSelection({ session, onComplete }: PreferencesSelectionProps) {
+export default function PreferencesSelection({ session, onComplete, onBack }: PreferencesSelectionProps) {
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onBack) {
+        onBack()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onBack])
 
   const [preferences, setPreferences] = useState({
     looking_for_gender: '',

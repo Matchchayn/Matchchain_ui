@@ -6,9 +6,10 @@ import RelaxConnectMatchCard from '../RelaxConnectMatchCard'
 interface MediaUploadProps {
   session: Session
   onComplete: () => void
+  onBack?: () => void
 }
 
-export default function MediaUpload({ session, onComplete }: MediaUploadProps) {
+export default function MediaUpload({ session, onComplete, onBack }: MediaUploadProps) {
   const [loading, setLoading] = useState(false)
 
   const [introVideo, setIntroVideo] = useState<File | null>(null)
@@ -21,6 +22,17 @@ export default function MediaUpload({ session, onComplete }: MediaUploadProps) {
   useEffect(() => {
     loadExistingMedia()
   }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onBack) {
+        onBack()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onBack])
 
   const loadExistingMedia = async () => {
     try {
@@ -89,31 +101,90 @@ export default function MediaUpload({ session, onComplete }: MediaUploadProps) {
   }
 
   const handleSubmit = async () => {
+    // Check if intro video exists (either newly uploaded or already existing)
     if (!introVideo && !introVideoUrl) {
+      alert('Please upload an intro video to continue.')
+      return
+    }
+
+    // Check if photo 1 exists (either newly uploaded or already existing)
+    if (!photo1 && !photo1Url) {
+      alert('Please upload at least the first photo (profile picture) to continue.')
       return
     }
 
     try {
       setLoading(true)
 
-      // Upload intro video
+      // Upload intro video only if it's a new file
       if (introVideo) {
         await uploadFile(introVideo, 'intro_video')
       }
 
-      // Upload photo 1
+      // Upload photo 1 and set as profile picture only if it's a new file
       if (photo1) {
-        await uploadFile(photo1, 'photo', 1)
+        const fileExt = photo1.name.split('.').pop()
+        const fileName = `photo1.${fileExt}`
+        const filePath = `${session.user.id}/${fileName}`
+
+        // Upload to storage
+        const { error: uploadError } = await supabase.storage
+          .from('user-videos')
+          .upload(filePath, photo1, { upsert: true })
+
+        if (uploadError) throw uploadError
+
+        // Save to user_media
+        await supabase
+          .from('user_media')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('media_type', 'photo')
+          .eq('display_order', 1)
+
+        const { error: dbError } = await supabase.from('user_media').insert({
+          user_id: session.user.id,
+          media_type: 'photo',
+          media_url: filePath,
+          display_order: 1,
+        })
+
+        if (dbError) throw dbError
+
+        // Update Profile table with avatar_url
+        const publicUrl = supabase.storage.from('user-videos').getPublicUrl(filePath).data.publicUrl
+
+        const { error: profileError } = await supabase
+          .from('Profile')
+          .update({ avatar_url: publicUrl })
+          .eq('id', session.user.id)
+
+        if (profileError) throw profileError
+      } else if (photo1Url && !photo1) {
+        // If photo1Url exists but no new photo1 file, it means they already uploaded
+        // We still need to ensure avatar_url is set in Profile table
+        const { error: profileError } = await supabase
+          .from('Profile')
+          .update({ avatar_url: photo1Url })
+          .eq('id', session.user.id)
+
+        if (profileError) {
+          console.error('Error updating profile with existing avatar:', profileError)
+        }
       }
 
-      // Upload photo 2
+      // Upload photo 2 only if it's a new file
       if (photo2) {
         await uploadFile(photo2, 'photo', 2)
       }
 
+      // Small delay to ensure all database transactions are complete
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       onComplete()
     } catch (error) {
       console.error('Error:', error)
+      alert('Error uploading media. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -220,8 +291,8 @@ export default function MediaUpload({ session, onComplete }: MediaUploadProps) {
 
             {/* Photos Upload */}
             <div className="grid grid-cols-2 gap-4 mb-8">
-              {/* Photo 1 */}
-              <label className="block h-40 border-2 border-dashed border-gray-600 rounded-xl cursor-pointer overflow-hidden relative bg-[#1f1f3a] hover:border-purple-500 transition-colors">
+              {/* Photo 1 - Profile Picture */}
+              <label className="block h-40 border-2 border-dashed border-purple-500 rounded-xl cursor-pointer overflow-hidden relative bg-[#1f1f3a] hover:border-purple-600 transition-colors">
                 <input
                   type="file"
                   accept="image/*"
@@ -231,14 +302,15 @@ export default function MediaUpload({ session, onComplete }: MediaUploadProps) {
                 {photo1Url ? (
                   <img
                     src={photo1Url}
-                    alt="Photo 1"
+                    alt="Profile Picture"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center">
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center mb-2">
                       <span className="text-2xl text-white">+</span>
                     </div>
+                    <span className="text-xs text-purple-400 font-semibold">Profile Pic</span>
                   </div>
                 )}
               </label>

@@ -30,13 +30,27 @@ export interface UserPreferences {
  * Calculate age from date of birth
  */
 function calculateAge(dateOfBirth: string): number {
+  if (!dateOfBirth) {
+    console.log('No date of birth provided')
+    return -1
+  }
+
   const today = new Date()
   const birth = new Date(dateOfBirth)
+
+  // Check if date is valid
+  if (isNaN(birth.getTime())) {
+    console.log(`Invalid date format: ${dateOfBirth}`)
+    return -1
+  }
+
   let age = today.getFullYear() - birth.getFullYear()
   const monthDiff = today.getMonth() - birth.getMonth()
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
     age--
   }
+
+  console.log(`Calculated age from ${dateOfBirth}: ${age}`)
   return age
 }
 
@@ -80,13 +94,11 @@ export async function fetchMatchingProfiles(
       .select('id, first_name, last_name, bio, city, country, gender, dateofbirth, relationshipstatus')
       .neq('id', currentUserId) // Exclude current user
 
-    // ALWAYS filter by gender preference from user_preferences
-    // If user selected "female", show only females
-    // If user selected "male", show only males
-    // If user selected "any", show all genders
-    if (prefs.looking_for_gender && prefs.looking_for_gender !== 'any') {
-      query = query.eq('gender', prefs.looking_for_gender)
-    }
+    // AUTOMATIC OPPOSITE GENDER MATCHING
+    // If user is male → show only females
+    // If user is female → show only males
+    const oppositeGender = currentUserProfile.gender === 'male' ? 'female' : 'male'
+    query = query.eq('gender', oppositeGender)
 
     // Filter by relationship status preference
     if (prefs.looking_for_relationship_status && prefs.looking_for_relationship_status !== 'any') {
@@ -95,8 +107,10 @@ export async function fetchMatchingProfiles(
 
     console.log('Matching algorithm filters:', {
       currentUserGender: currentUserProfile.gender,
-      lookingForGender: prefs.looking_for_gender,
-      lookingForRelationship: prefs.looking_for_relationship_status
+      showingGender: oppositeGender,
+      lookingForRelationship: prefs.looking_for_relationship_status,
+      ageRange: `${prefs.age_min}-${prefs.age_max}`,
+      distanceKm: prefs.distance_km
     })
 
     const { data: profiles, error: profilesError } = await query
@@ -106,37 +120,69 @@ export async function fetchMatchingProfiles(
       return []
     }
 
+    console.log(`Found ${profiles?.length || 0} profiles with opposite gender (${oppositeGender})`)
+
     if (!profiles || profiles.length === 0) {
+      console.log('No profiles found matching gender filter')
       return []
     }
 
     // 4. Filter by age range (client-side filtering since we need to calculate age)
     const filteredByAge = profiles.filter((profile) => {
-      if (!profile.dateofbirth) return false
+      if (!profile.dateofbirth) {
+        console.log(`Profile ${profile.id} has no date of birth - excluded`)
+        return false
+      }
       const age = calculateAge(profile.dateofbirth)
-      return age >= prefs.age_min && age <= prefs.age_max
+      const matches = age >= prefs.age_min && age <= prefs.age_max
+      if (!matches) {
+        console.log(`Profile ${profile.id} age ${age} not in range ${prefs.age_min}-${prefs.age_max} - excluded`)
+      }
+      return matches
     })
+
+    console.log(`After age filter: ${filteredByAge.length} profiles`)
 
     // 5. Fetch media and interests for each matching profile
     const profilesWithData = await Promise.all(
       filteredByAge.map(async (profile) => {
-        // Get first photo or video
-        const { data: media } = await supabase
+        // First, try to get the intro video (display_order = 0, media_type = 'video')
+        const { data: introVideo } = await supabase
           .from('user_media')
           .select('media_url, media_type')
           .eq('user_id', profile.id)
-          .order('display_order', { ascending: true })
-          .limit(1)
+          .eq('display_order', 0)
+          .eq('media_type', 'video')
           .single()
 
         let photoUrl = null
         let mediaType = null
-        if (media?.media_url) {
+
+        if (introVideo?.media_url) {
+          // Use intro video if available
           const { data: { publicUrl } } = supabase.storage
             .from('user-videos')
-            .getPublicUrl(media.media_url)
+            .getPublicUrl(introVideo.media_url)
           photoUrl = publicUrl
-          mediaType = media.media_type as 'photo' | 'video'
+          mediaType = 'video' as const
+        } else {
+          // Fallback to first photo if no intro video
+          const { data: firstPhoto } = await supabase
+            .from('user_media')
+            .select('media_url, media_type')
+            .eq('user_id', profile.id)
+            .eq('media_type', 'photo')
+            .order('display_order', { ascending: true })
+            .limit(1)
+            .single()
+
+          if (firstPhoto?.media_url) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('user-videos')
+              .getPublicUrl(firstPhoto.media_url)
+            photoUrl = publicUrl
+            mediaType = 'photo' as const
+          }
         }
 
         // Get interests (limit to 2 for display)
