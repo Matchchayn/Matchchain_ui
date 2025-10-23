@@ -1,6 +1,7 @@
 import './index.css'
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { VidbloqProvider } from "@vidbloq/react";
 import { supabase } from './client'
 import type { Session } from '@supabase/supabase-js'
 import Login from './components/Login'
@@ -13,6 +14,7 @@ import ProfileCreation from './components/Onboarding/ProfileCreation'
 import InterestSelection from './components/Onboarding/InterestSelection'
 import PreferencesSelection from './components/Onboarding/PreferencesSelection'
 import MediaUpload from './components/Onboarding/MediaUpload'
+import VidbloqWrapper from './components/video/vidbloq-wrapper'
 import Alert from './components/Alert'
 // Loader component removed - no loading screens
 import { useAlert } from './hooks/useAlert'
@@ -26,6 +28,8 @@ export default function App() {
   const [onboardingStep, setOnboardingStep] = useState<number>(0)
   // Loading state removed - no loading screens
   const { alert, showAlert, closeAlert } = useAlert()
+  const apiKey = "sk_d7109a19b550475599657f33f6aa9e4a";
+  const apiSecret = "iUmSBvm5DZFS1bJSUmdWM3QEmD1b92Y/h10UXKf7H/o=";
 
   useEffect(() => {
     // Check if OAuth was cancelled (error in URL)
@@ -286,6 +290,17 @@ export default function App() {
           <Route path="/" element={<Home session={session} />} />
           <Route path="/likes" element={<Likes session={session} />} />
           <Route path="/settings" element={<Settings session={session} />} />
+           <Route
+          path="/video-call/:sessionId"
+          element={
+              <VidbloqProvider
+                apiKey={apiKey || ""}
+                apiSecret={apiSecret || ""}
+              >
+                <VidbloqWrapper />
+              </VidbloqProvider>
+          }
+        />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
