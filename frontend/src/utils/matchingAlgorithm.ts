@@ -146,13 +146,12 @@ export async function fetchMatchingProfiles(
     // 5. Fetch media and interests for each matching profile
     const profilesWithData = await Promise.all(
       filteredByAge.map(async (profile) => {
-        // First, try to get the intro video (display_order = 0, media_type = 'video')
+        // First, try to get the intro video (media_type = 'intro_video')
         const { data: introVideo } = await supabase
           .from('user_media')
           .select('media_url, media_type')
           .eq('user_id', profile.id)
-          .eq('display_order', 0)
-          .eq('media_type', 'video')
+          .eq('media_type', 'intro_video')
           .single()
 
         let photoUrl = null
