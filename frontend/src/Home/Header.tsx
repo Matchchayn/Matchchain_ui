@@ -100,25 +100,23 @@ export default function Header({ userId }: HeaderProps) {
 
           {/* Right side buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Connect Wallet Button */}
-            <div className="hidden sm:block">
-              <WalletButton />
-            </div>
-
-            {/* Notification Bell */}
-            <button className="hidden sm:block relative p-2 hover:bg-purple-600/20 rounded-lg transition-colors">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-            </button>
-
-            {/* SOL Balance - Only show when wallet is connected */}
+            {/* SOL Balance - Only show when wallet is connected (hide on small mobile) */}
             {connected && publicKey && (
-              <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#1a1a2e] rounded-full border border-purple-500/30">
+              <div className="hidden xs:flex items-center gap-2 px-2 py-1.5 sm:px-4 sm:py-2 bg-[#1a1a2e] rounded-full border border-purple-500/30">
                 <span className="text-white text-xs sm:text-sm font-semibold">SOL</span>
                 <span className="text-purple-400 text-xs sm:text-sm font-bold">{balance.toFixed(2)}</span>
               </div>
             )}
+
+            {/* Connect Wallet Button - Now visible on all screen sizes */}
+            <WalletButton />
+
+            {/* Notification Bell - Desktop only */}
+            <button className="hidden lg:block relative p-2 hover:bg-purple-600/20 rounded-lg transition-colors">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </button>
 
             {/* Profile Picture with dropdown indicator */}
             <button

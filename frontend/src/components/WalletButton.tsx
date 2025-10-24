@@ -32,10 +32,10 @@ export default function WalletButton() {
     return (
       <button
         onClick={handleDisconnect}
-        className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg transition-colors"
+        className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg transition-colors"
       >
         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-        <span className="text-white text-sm font-medium">
+        <span className="text-white text-xs sm:text-sm font-medium">
           {formatAddress(publicKey.toBase58())}
         </span>
       </button>
@@ -47,13 +47,16 @@ export default function WalletButton() {
       <button
         onClick={() => setShowModal(true)}
         disabled={connecting}
-        className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg transition-colors disabled:opacity-50"
+        className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg transition-colors disabled:opacity-50"
       >
-        <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
-        <span className="text-white text-sm font-medium">
+        <span className="hidden sm:inline text-white text-sm font-medium">
           {connecting ? 'Connecting...' : 'Select Wallet'}
+        </span>
+        <span className="sm:hidden text-white text-xs font-medium">
+          {connecting ? 'Connecting...' : 'Wallet'}
         </span>
       </button>
 

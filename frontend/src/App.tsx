@@ -11,6 +11,7 @@ import ForgotPassword from './components/ForgotPassword'
 import Home from './Home/index'
 import Settings from './Settings'
 import Likes from './components/Likes'
+import MatchesLikes from './components/MatchesLikes'
 import ProfileCreation from './components/Onboarding/ProfileCreation'
 import InterestSelection from './components/Onboarding/InterestSelection'
 import PreferencesSelection from './components/Onboarding/PreferencesSelection'
@@ -290,6 +291,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home session={session} />} />
           <Route path="/likes" element={<Likes session={session} />} />
+          <Route path="/matches" element={<MatchesLikes session={session} />} />
           <Route path="/settings" element={<Settings session={session} />} />
            <Route
           path="/video-call/:sessionId"
