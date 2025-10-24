@@ -79,8 +79,8 @@ export default function ProfileCreation({ session, onComplete, onBack }: Profile
   return (
     <div className="min-h-screen lg:h-screen flex flex-col lg:flex-row bg-[#0a0a1f] lg:overflow-hidden">
       {/* Left Side - Image (Hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative p-4 bg-[#0a0a1f]">
-        <div className="relative w-full h-full rounded-2xl overflow-hidden">
+      <div className="hidden lg:block lg:w-1/2 lg:flex-shrink-0 relative bg-[#0a0a1f]">
+        <div className="relative w-full h-full overflow-hidden">
           <img
             src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976&auto=format&fit=crop"
             alt="Woman smiling"

@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { VidbloqProvider } from "@vidbloq/react";
 import { supabase } from './client'
 import type { Session } from '@supabase/supabase-js'
+import { WalletContextProvider } from './contexts/WalletContextProvider'
 import Login from './components/Login'
 import Signup from './components/Signup'
 import ForgotPassword from './components/ForgotPassword'
@@ -284,7 +285,7 @@ export default function App() {
 
   // Step 5: Go to Home
   return (
-    <>
+    <WalletContextProvider>
       <Router>
         <Routes>
           <Route path="/" element={<Home session={session} />} />
@@ -305,6 +306,6 @@ export default function App() {
         </Routes>
       </Router>
       {alert && <Alert message={alert.message} type={alert.type} onClose={closeAlert} />}
-    </>
+    </WalletContextProvider>
   )
 }

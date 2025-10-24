@@ -1,6 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../client'
+import { useWallet, useConnection } from '@solana/wallet-adapter-react'
+import { LAMPORTS_PER_SOL } from '@solana/web3.js'
+import WalletButton from '../components/WalletButton'
 
 interface HeaderProps {
   userId?: string
@@ -11,7 +14,10 @@ const userDataCache = new Map<string, { avatarUrl: string | null }>()
 
 export default function Header({ userId }: HeaderProps) {
   const navigate = useNavigate()
+  const { publicKey, connected } = useWallet()
+  const { connection } = useConnection()
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [balance, setBalance] = useState<number>(0)
   const hasFetched = useRef(false)
 
   useEffect(() => {
@@ -51,6 +57,31 @@ export default function Header({ userId }: HeaderProps) {
     }
   }
 
+  // Fetch SOL balance when wallet is connected
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (connected && publicKey && connection) {
+        try {
+          const balance = await connection.getBalance(publicKey)
+          const solBalance = balance / LAMPORTS_PER_SOL
+          setBalance(solBalance)
+          console.log('Wallet balance:', solBalance, 'SOL')
+        } catch (error) {
+          console.error('Error fetching balance:', error)
+          setBalance(0)
+        }
+      } else {
+        setBalance(0)
+      }
+    }
+
+    fetchBalance()
+
+    // Refresh balance every 10 seconds
+    const interval = setInterval(fetchBalance, 10000)
+    return () => clearInterval(interval)
+  }, [connected, publicKey, connection])
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a1f] backdrop-blur-md border-b border-purple-500/20">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -70,13 +101,10 @@ export default function Header({ userId }: HeaderProps) {
 
           {/* Right side buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Connect Wallet Button (desktop) */}
-            <button className="hidden sm:flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg transition-colors">
-              <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <span className="text-white text-sm font-medium">Connect wallet</span>
-            </button>
+            {/* Connect Wallet Button */}
+            <div className="hidden sm:block">
+              <WalletButton />
+            </div>
 
             {/* Notification Bell */}
             <button className="hidden sm:block relative p-2 hover:bg-purple-600/20 rounded-lg transition-colors">
@@ -85,11 +113,13 @@ export default function Header({ userId }: HeaderProps) {
               </svg>
             </button>
 
-            {/* SOL Balance */}
-            <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#1a1a2e] rounded-full border border-purple-500/30">
-              <span className="text-white text-xs sm:text-sm font-semibold">SOL</span>
-              <span className="text-purple-400 text-xs sm:text-sm font-bold">24.5</span>
-            </div>
+            {/* SOL Balance - Only show when wallet is connected */}
+            {connected && publicKey && (
+              <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#1a1a2e] rounded-full border border-purple-500/30">
+                <span className="text-white text-xs sm:text-sm font-semibold">SOL</span>
+                <span className="text-purple-400 text-xs sm:text-sm font-bold">{balance.toFixed(2)}</span>
+              </div>
+            )}
 
             {/* Profile Picture with dropdown indicator */}
             <button

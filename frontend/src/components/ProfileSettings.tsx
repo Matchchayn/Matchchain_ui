@@ -3,6 +3,7 @@ import { supabase } from '../client'
 import type { User } from '@supabase/supabase-js'
 import { useNavigate } from 'react-router-dom'
 import Header from '../Home/Header'
+import Sidebar from './Sidebar'
 
 interface ProfileSettingsProps {
   user: User | null
@@ -324,8 +325,9 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
 
   return (
     <>
+      <Sidebar />
       <Header userId={user?.id || ''} />
-      <div className="min-h-screen bg-[#0a0a1f] text-white">
+      <div className="min-h-screen bg-[#0a0a1f] text-white lg:pl-64">
         <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-3 sm:space-y-4" style={{ paddingTop: '70px' }}>
         {/* Profile Settings Header */}
         <div className="flex items-center justify-between">

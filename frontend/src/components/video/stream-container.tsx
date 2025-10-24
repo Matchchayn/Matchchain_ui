@@ -6,8 +6,7 @@ import JoinStream from "./join-stream";
 
 const StreamContainer = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [view, setView] = useState<"create" | "join" | "room">(
+  const [view] = useState<"create" | "join" | "room">(
     sessionId ? "room" : "create"
   );
   const [roomName, setRoomName] = useState("");

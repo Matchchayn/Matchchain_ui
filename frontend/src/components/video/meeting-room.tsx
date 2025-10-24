@@ -20,28 +20,28 @@ export default function MeetingRoom() {
   const localParticipant = meeting.participants.local;
 
   // Get tracks for a participant
-  const getParticipantTracks = useCallback((participant) => {
+  const getParticipantTracks = useCallback((participant: any) => {
     if (!participant) return { video: null, audio: null };
-    
+
     const tracks = meeting.getParticipantTracks(participant.identity);
-    const videoTrack = tracks.find(t => 
+    const videoTrack = tracks.find(t =>
       t.source === "camera" || t.source === "Camera"
     );
-    const audioTrack = tracks.find(t => 
+    const audioTrack = tracks.find(t =>
       t.source === "microphone" || t.source === "Microphone"
     );
-    
+
     return { video: videoTrack, audio: audioTrack };
   }, [meeting]);
 
   // Parse participant metadata
-  const getParticipantInfo = (participant) => {
+  const getParticipantInfo = (participant: any) => {
     if (!participant) return { name: "Unknown", initials: "?" };
-    
+
     try {
       const metadata = participant.metadata ? JSON.parse(participant.metadata) : {};
       const name = metadata.userName || participant.identity || "Unknown";
-      const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+      const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
       return {
         name,
         initials,
@@ -53,7 +53,7 @@ export default function MeetingRoom() {
   };
 
   // Render single participant frame
-  const renderParticipantFrame = (participant, layoutStyle = {}) => {
+  const renderParticipantFrame = (participant: any, layoutStyle = {}) => {
     if (!participant) return null;
     
     const { video, audio } = getParticipantTracks(participant);

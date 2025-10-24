@@ -221,10 +221,10 @@ export default function MediaUpload({ session, onComplete, onBack }: MediaUpload
   }
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row bg-[#0a0a1f] overflow-hidden">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#0a0a1f]">
       {/* Left Side - Image (Hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative p-4 bg-[#0a0a1f]">
-        <div className="relative w-full h-full rounded-2xl overflow-hidden">
+      <div className="hidden lg:block lg:w-1/2 lg:flex-shrink-0 relative bg-[#0a0a1f]">
+        <div className="relative w-full h-full overflow-hidden">
           <img
             src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&auto=format&fit=crop"
             alt="Background"
@@ -235,7 +235,7 @@ export default function MediaUpload({ session, onComplete, onBack }: MediaUpload
       </div>
 
       {/* Right Side - Form */}
-      <div className="flex-1 lg:w-1/2 flex flex-col overflow-y-auto bg-[#0a0a1f]">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 min-h-screen bg-[#0a0a1f]">
         <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
           <div className="w-full max-w-md">
             {/* Header */}

@@ -161,10 +161,10 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row bg-[#0a0a1f] overflow-hidden">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#0a0a1f]">
       {/* Left Side - Image (Hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative p-4 bg-[#0a0a1f]">
-        <div className="relative w-full h-full rounded-2xl overflow-hidden">
+      <div className="hidden lg:block lg:w-1/2 lg:flex-shrink-0 relative bg-[#0a0a1f]">
+        <div className="relative w-full h-full overflow-hidden">
           <img
             src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976&auto=format&fit=crop"
             alt="Woman smiling"
@@ -175,8 +175,8 @@ export default function ForgotPassword() {
       </div>
 
       {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-6 lg:p-8 overflow-y-auto">
-        <div className="w-full max-w-md mx-auto py-4">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 min-h-screen">
+        <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6">
             <svg className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" viewBox="0 0 24 24" fill="currentColor">

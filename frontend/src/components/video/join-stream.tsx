@@ -6,9 +6,9 @@ import {
   StreamView,
 } from "@vidbloq/react";
 import { LogIn } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Label } from "../ui/label";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
 
 const JoinStream = ({
   setRoomName,
@@ -16,14 +16,12 @@ const JoinStream = ({
   setRoomName: (name: string) => void;
 }) => {
   const { publicKey } = useRequirePublicKey();
-  const { nickname, setNickname, joinStream, isLoading } = usePrejoin({
+  const { nickname, setNickname, joinStream } = usePrejoin({
     publicKey,
   });
   const {
-    streamMetadata: { creatorWallet, streamSessionType },
     token,
     roomName,
-    // isLoadingStreamMetadata
   } = useStreamContext();
   return (
     <>

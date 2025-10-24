@@ -10,9 +10,9 @@ import {
 import { useCreateStream } from "@vidbloq/react";
 import { Video } from "lucide-react";
 import { Button } from "../ui/button";
-import { Label } from "@/components/ui/label";
+import { Label } from "../ui/label";
 import { Input } from "../ui/input";
-import { getWalletAddress } from "@/utils/walletStorage";
+import { getWalletAddress } from "../../utils/walletStorage";
 
 type CreateStreamProps = {
   roomName: string;
@@ -50,10 +50,7 @@ const CreateStream = ({ roomName, setRoomName }: CreateStreamProps) => {
       }
     } catch (error) {
       console.error("Failed to create room:", error);
-      // Use the error from the hook if available, otherwise use the caught error
-      const errorMessage =
-        error?.message ||
-        (error instanceof Error ? error.message : "Unknown error");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       alert(`Failed to create room: ${errorMessage}`);
     }
   };
