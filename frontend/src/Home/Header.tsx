@@ -65,9 +65,8 @@ export default function Header({ userId }: HeaderProps) {
           const balance = await connection.getBalance(publicKey)
           const solBalance = balance / LAMPORTS_PER_SOL
           setBalance(solBalance)
-          console.log('Wallet balance:', solBalance, 'SOL')
         } catch (error) {
-          console.error('Error fetching balance:', error)
+          // Silently fail - likely RPC rate limit
           setBalance(0)
         }
       } else {

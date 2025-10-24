@@ -15,7 +15,7 @@ export async function likeProfile(
       .select('id')
       .eq('user_id', currentUserId)
       .eq('liked_user_id', likedUserId)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       return { success: false, error: 'Already liked this profile' }
@@ -38,7 +38,7 @@ export async function likeProfile(
       .select('id')
       .eq('user_id', likedUserId)
       .eq('liked_user_id', currentUserId)
-      .single()
+      .maybeSingle()
 
     if (mutualLike) {
       // Create a match record

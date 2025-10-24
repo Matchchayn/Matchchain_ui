@@ -9,9 +9,20 @@ interface WalletContextProviderProps {
 }
 
 export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children }) => {
-  // Using mainnet-beta for production, change to Devnet for testing
+  // Using mainnet-beta for production
   const network = WalletAdapterNetwork.Mainnet
-  const endpoint = useMemo(() => clusterApiUrl(network), [network])
+
+  // Use custom RPC endpoint or fallback to public mainnet
+  // Get a free RPC from: https://www.helius.dev/ or https://www.quicknode.com/
+  const endpoint = useMemo(() => {
+    // Use environment variable for custom RPC if provided
+    if (import.meta.env.VITE_SOLANA_RPC_URL) {
+      return import.meta.env.VITE_SOLANA_RPC_URL
+    }
+
+    // Default to mainnet (may have rate limits)
+    return clusterApiUrl(network)
+  }, [network])
 
   // Wallets will be auto-detected by the adapter
   const wallets = useMemo(

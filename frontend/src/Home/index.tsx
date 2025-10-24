@@ -255,14 +255,21 @@ export default function Home({ session }: HomeProps) {
                     {/* Image/Video Section */}
                     {currentUser.photoUrl ? (
                       <div className="relative h-[400px] sm:h-[450px] overflow-hidden">
-                        {currentUser.mediaType === 'video' ? (
+                        {currentUser.mediaType === 'video' || currentUser.mediaType === 'intro_video' ? (
                           <video
                             id={`video-${currentUser.id}`}
                             src={currentUser.photoUrl}
                             className="w-full h-full object-cover"
                             loop
                             playsInline
-                          />
+                            preload="metadata"
+                            controls={false}
+                          >
+                            <source src={currentUser.photoUrl} type="video/mp4" />
+                            <source src={currentUser.photoUrl} type="video/quicktime" />
+                            <source src={currentUser.photoUrl} type="video/webm" />
+                            Your browser does not support the video tag.
+                          </video>
                         ) : (
                           <img
                             src={currentUser.photoUrl}

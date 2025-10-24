@@ -193,6 +193,12 @@ export default function MediaUpload({ session, onComplete, onBack }: MediaUpload
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
+
+      // Check for .mov files
+      if (file.name.toLowerCase().endsWith('.mov')) {
+        alert('⚠️ .MOV files may not play in all browsers. For best compatibility, please convert to .MP4 format.\n\nYou can use free online converters like:\n- CloudConvert.com\n- FreeConvert.com')
+      }
+
       if (file.type.startsWith('video/')) {
         setIntroVideo(file)
         setIntroVideoUrl(URL.createObjectURL(file))

@@ -36,6 +36,14 @@ export default function RightSidebar({ userId, mobileView = false }: RightSideba
     if (userId) {
       fetchLikes()
       fetchMatches()
+
+      // Set up polling to check for new likes every 10 seconds
+      const interval = setInterval(() => {
+        fetchLikes()
+        fetchMatches()
+      }, 10000)
+
+      return () => clearInterval(interval)
     }
   }, [userId])
 
@@ -49,8 +57,6 @@ export default function RightSidebar({ userId, mobileView = false }: RightSideba
         .order('created_at', { ascending: false })
 
       if (likesError) throw likesError
-
-      console.log('Likes data for user', userId, ':', likesData)
 
       if (likesData && likesData.length > 0) {
         // Fetch profile details for each liker
@@ -83,6 +89,10 @@ export default function RightSidebar({ userId, mobileView = false }: RightSideba
 
         setLikes(likesWithProfiles)
         setLikeCount(likesWithProfiles.length)
+      } else {
+        // No likes found, reset state
+        setLikes([])
+        setLikeCount(0)
       }
     } catch (error) {
       console.error('Error fetching likes:', error)
@@ -108,14 +118,9 @@ export default function RightSidebar({ userId, mobileView = false }: RightSideba
 
       if (theirLikesError) throw theirLikesError
 
-      console.log('My likes:', myLikes)
-      console.log('Their likes:', theirLikes)
-
       // Find mutual likes
       const myLikedIds = myLikes?.map(like => like.liked_user_id) || []
       const mutualLikes = theirLikes?.filter(like => myLikedIds.includes(like.user_id)) || []
-
-      console.log('Mutual matches:', mutualLikes)
 
       if (mutualLikes.length > 0) {
         const matchIds = mutualLikes.map(like => like.user_id)
@@ -146,6 +151,10 @@ export default function RightSidebar({ userId, mobileView = false }: RightSideba
 
         setMatches(matchesWithProfiles)
         setMatchCount(matchesWithProfiles.length)
+      } else {
+        // No matches found, reset state
+        setMatches([])
+        setMatchCount(0)
       }
     } catch (error) {
       console.error('Error fetching matches:', error)
