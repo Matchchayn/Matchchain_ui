@@ -18,6 +18,9 @@ import PreferencesSelection from './components/Onboarding/PreferencesSelection'
 import MediaUpload from './components/Onboarding/MediaUpload'
 import VidbloqWrapper from './components/video/vidbloq-wrapper'
 import Alert from './components/Alert'
+import MessagesPage from './Home/MessagesPage'
+
+
 // Loader component removed - no loading screens
 import { useAlert } from './hooks/useAlert'
 
@@ -284,30 +287,34 @@ export default function App() {
 
   // Remove loading screen - let onboarding states load in background
 
-  // Step 5: Go to Home
-  return (
-    <WalletContextProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Home session={session} />} />
-          <Route path="/likes" element={<Likes session={session} />} />
-          <Route path="/matches" element={<MatchesLikes session={session} />} />
-          <Route path="/settings" element={<Settings session={session} />} />
-           <Route
+ // Step 5: Go to Home
+return (
+  <WalletContextProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home session={session} />} />
+        <Route path="/likes" element={<Likes session={session} />} />
+        <Route path="/matches" element={<MatchesLikes session={session} />} />
+        <Route path="/settings" element={<Settings session={session} />} />
+        <Route
           path="/video-call/:sessionId"
           element={
-              <VidbloqProvider
-                apiKey={apiKey || ""}
-                apiSecret={apiSecret || ""}
-              >
-                <VidbloqWrapper />
-              </VidbloqProvider>
+            <VidbloqProvider apiKey={apiKey} apiSecret={apiSecret}>
+              <VidbloqWrapper />
+            </VidbloqProvider>
           }
         />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-      {alert && <Alert message={alert.message} type={alert.type} onClose={closeAlert} />}
-    </WalletContextProvider>
-  )
+        {/* ✅ Messaging route */}
+        <Route path="/messages" element={<MessagesPage session={session} />} />
+
+        {/* fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+
+    {alert && (
+      <Alert message={alert.message} type={alert.type} onClose={closeAlert} />
+    )}
+  </WalletContextProvider>
+)
 }
