@@ -635,7 +635,7 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
                   )
                 })}
                 {/* Add placeholder slots if less than 6 media items */}
-                {Array.from({ length: Math.max(0, 6 - galleryMedia.length) }).map((_, idx) => (
+                {Array.from({ length: Math.max(0, 3 - galleryMedia.length) }).map((_, idx) => (
                   <label 
                     key={`placeholder-${idx}`} 
                     htmlFor="gallery-upload"
@@ -649,8 +649,8 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
               </>
             ) : (
               <>
-                {/* Show 6 placeholder slots when no media */}
-                {Array.from({ length: 6 }).map((_, idx) => (
+                {/* Show 6 placeholder slots when no media/ UPDATED to 3 */}
+                {Array.from({ length: 3 }).map((_, idx) => (
                   <label 
                     key={`empty-${idx}`} 
                     htmlFor="gallery-upload"
