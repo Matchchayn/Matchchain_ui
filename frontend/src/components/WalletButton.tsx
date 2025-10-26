@@ -14,7 +14,7 @@ export default function WalletButton() {
       select(walletName)
       setShowModal(false)
     } catch (error) {
-      console.error('Error connecting wallet:', error)
+      console.error('Error connecting wallet:', error) 
     }
   }
 
