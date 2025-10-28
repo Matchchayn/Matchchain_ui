@@ -18,7 +18,7 @@ import PreferencesSelection from './components/Onboarding/PreferencesSelection'
 import MediaUpload from './components/Onboarding/MediaUpload'
 import VidbloqWrapper from './components/video/vidbloq-wrapper'
 import Alert from './components/Alert'
-import MessagesPage from './Home/MessagesPage'
+import MessagesPage from './components/MessagesPage'
 
 
 // Loader component removed - no loading screens
@@ -296,6 +296,7 @@ return (
         <Route path="/likes" element={<Likes session={session} />} />
         <Route path="/matches" element={<MatchesLikes session={session} />} />
         <Route path="/settings" element={<Settings session={session} />} />
+       <Route path="/messages" element={<MessagesPage session={session} />} />
         <Route
           path="/video-call/:sessionId"
           element={
@@ -304,8 +305,7 @@ return (
             </VidbloqProvider>
           }
         />
-        {/* ✅ Messaging route */}
-        <Route path="/messages" element={<MessagesPage session={session} />} />
+      
 
         {/* fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -318,3 +318,5 @@ return (
   </WalletContextProvider>
 )
 }
+
+

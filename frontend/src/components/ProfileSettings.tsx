@@ -649,8 +649,8 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
               </>
             ) : (
               <>
-                {/* Show 6 placeholder slots when no media/ UPDATED to 3 */}
-                {Array.from({ length: 3 }).map((_, idx) => (
+                {/* Show 6 placeholder slots when no media/ UPDATED to 4 */}
+                {Array.from({ length: 4 }).map((_, idx) => (
                   <label 
                     key={`empty-${idx}`} 
                     htmlFor="gallery-upload"

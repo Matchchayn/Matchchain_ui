@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
+import type { Session } from '@supabase/supabase-js';
 
 interface Message {
   id: string;
@@ -10,12 +11,16 @@ interface Message {
   created_at: string;
 }
 
-export default function MessagesPage() {
+interface MessagesPageProps {
+  session: Session;
+}
+
+export default function MessagesPage({ session }: MessagesPageProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [attachment, setAttachment] = useState<File | null>(null);
 
-  const userId = 'your-user-id'; // ⚠️ Replace this later with Supabase auth session
+  const userId = session.user.id; // Use session prop for user ID
 
   // Fetch existing messages
   const fetchMessages = async () => {
