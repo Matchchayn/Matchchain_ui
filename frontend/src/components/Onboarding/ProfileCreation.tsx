@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../client'
 import type { Session } from '@supabase/supabase-js'
 import RelaxConnectMatchCard from '../RelaxConnectMatchCard'
+import onboardingstock from '../../assets/onboardingstock.jpg'
 
 interface ProfileCreationProps {
   session: Session
@@ -82,7 +83,7 @@ export default function ProfileCreation({ session, onComplete, onBack }: Profile
       <div className="hidden lg:block lg:w-1/2 lg:flex-shrink-0 relative bg-[#0a0a1f]">
         <div className="relative w-full h-full overflow-hidden">
           <img
-            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=1976&auto=format&fit=crop"
+            src={onboardingstock}
             alt="Woman smiling"
             className="absolute inset-0 w-full h-full object-cover"
           />

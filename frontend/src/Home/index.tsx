@@ -92,15 +92,15 @@ export default function Home({ session }: HomeProps) {
 
   const handleNext = () => {
     if (currentIndex < users.length - 1) {
-      setCurrentIndex(currentIndex + 1)
       setIsVideoPlaying(false)
+      setCurrentIndex(currentIndex + 1)
     }
   }
 
   const handlePrevious = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1)
       setIsVideoPlaying(false)
+      setCurrentIndex(currentIndex - 1)
     }
   }
 
@@ -254,9 +254,10 @@ export default function Home({ session }: HomeProps) {
 
                     {/* Image/Video Section */}
                     {currentUser.photoUrl ? (
-                      <div className="relative h-[400px] sm:h-[450px] overflow-hidden">
+                      <div key={currentUser.id} className="relative h-[400px] sm:h-[450px] overflow-hidden">
                         {currentUser.mediaType === 'video' ? (
                           <video
+                            key={`video-${currentUser.id}`}
                             id={`video-${currentUser.id}`}
                             src={currentUser.photoUrl}
                             className="w-full h-full object-cover"
@@ -264,17 +265,16 @@ export default function Home({ session }: HomeProps) {
                             playsInline
                             preload="metadata"
                             controls={false}
-                          >
-                            <source src={currentUser.photoUrl} type="video/mp4" />
-                            <source src={currentUser.photoUrl} type="video/quicktime" />
-                            <source src={currentUser.photoUrl} type="video/webm" />
-                            Your browser does not support the video tag.
-                          </video>
+                            muted={false}
+                            poster=""
+                          />
                         ) : (
                           <img
+                            key={`img-${currentUser.id}`}
                             src={currentUser.photoUrl}
                             alt={currentUser.first_name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
                           />
                         )}
 
@@ -480,7 +480,7 @@ export default function Home({ session }: HomeProps) {
             <span className="text-[10px] font-medium">Likes</span>
           </button>
           <button
-            onClick={() => {}}
+            onClick={() => navigate('/messages')}
             className="flex flex-col items-center gap-1 text-white/60 p-2"
           >
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">

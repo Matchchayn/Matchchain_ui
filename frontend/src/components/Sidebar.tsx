@@ -55,9 +55,14 @@ export default function Sidebar() {
         </button>
 
         <button
-          onClick={() => {}}
-          className="w-full flex items-center gap-3 px-4 py-3 text-gray-400 rounded-lg hover:text-white transition-all"
+          onClick={() => navigate('/messages')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${
+            isActive('/messages') ? 'text-purple-400' : 'text-gray-400 hover:text-white'
+          }`}
         >
+          {isActive('/messages') && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-purple-500 rounded-r-full"></div>
+          )}
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
           </svg>

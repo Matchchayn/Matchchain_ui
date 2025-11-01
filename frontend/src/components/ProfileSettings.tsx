@@ -57,17 +57,26 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
         setRelationshipStatus(data.relationshipstatus)
         setBio(data.bio)
         setAvatarUrl(data.avatar_url)
+      }
 
-        // Download avatar if exists
-        if (data.avatar_url) {
-          const { data: imageData, error: downloadError } = await supabase.storage
-            .from('avatars')
-            .download(data.avatar_url)
+      // Fetch profile picture from user_media table (photo with display_order = 1)
+      const { data: photoData, error: photoError } = await supabase
+        .from('user_media')
+        .select('media_url')
+        .eq('user_id', user?.id)
+        .eq('media_type', 'photo')
+        .eq('display_order', 1)
+        .single()
 
-          if (!downloadError && imageData) {
-            const url = URL.createObjectURL(imageData)
-            setAvatarBlobUrl(url)
-          }
+      if (!photoError && photoData) {
+        // Download from user-videos bucket
+        const { data: imageData, error: downloadError } = await supabase.storage
+          .from('user-videos')
+          .download(photoData.media_url)
+
+        if (!downloadError && imageData) {
+          const url = URL.createObjectURL(imageData)
+          setAvatarBlobUrl(url)
         }
       }
 
@@ -232,27 +241,49 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
 
       const file = event.target.files[0]
       const fileExt = file.name.split('.').pop()
-      const filePath = `${user?.id}-${Math.random()}.${fileExt}`
+      const fileName = `photo1.${fileExt}`
+      const filePath = `${user?.id}/${fileName}`
 
+      // Upload to user-videos bucket (same as onboarding)
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file)
+        .from('user-videos')
+        .upload(filePath, file, { upsert: true })
 
       if (uploadError) throw uploadError
 
-      // Update avatar_url in database
+      // Delete existing photo1 record in user_media
+      await supabase
+        .from('user_media')
+        .delete()
+        .eq('user_id', user?.id)
+        .eq('media_type', 'photo')
+        .eq('display_order', 1)
+
+      // Insert new photo1 record
+      const { error: dbError } = await supabase.from('user_media').insert({
+        user_id: user?.id,
+        media_type: 'photo',
+        media_url: filePath,
+        display_order: 1,
+      })
+
+      if (dbError) throw dbError
+
+      // Get public URL and update Profile table
+      const publicUrl = supabase.storage.from('user-videos').getPublicUrl(filePath).data.publicUrl
+
       const { error: updateError } = await supabase.from('Profile').update({
-        avatar_url: filePath,
+        avatar_url: publicUrl,
         updated_at: new Date().toISOString(),
       }).eq('id', user?.id)
 
       if (updateError) throw updateError
 
-      setAvatarUrl(filePath)
+      setAvatarUrl(publicUrl)
 
       // Download and display new avatar
       const { data: imageData } = await supabase.storage
-        .from('avatars')
+        .from('user-videos')
         .download(filePath)
 
       if (imageData) {
@@ -634,10 +665,10 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
                     </div>
                   )
                 })}
-                {/* Add placeholder slots if less than 6 media items */}
-                {Array.from({ length: Math.max(0, 6 - galleryMedia.length) }).map((_, idx) => (
-                  <label 
-                    key={`placeholder-${idx}`} 
+                {/* Add placeholder slots if less than 4 media items */}
+                {Array.from({ length: Math.max(0, 4 - galleryMedia.length) }).map((_, idx) => (
+                  <label
+                    key={`placeholder-${idx}`}
                     htmlFor="gallery-upload"
                     className="aspect-square bg-gray-800 rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-700 transition-colors"
                   >
@@ -649,10 +680,10 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
               </>
             ) : (
               <>
-                {/* Show 6 placeholder slots when no media */}
-                {Array.from({ length: 6 }).map((_, idx) => (
-                  <label 
-                    key={`empty-${idx}`} 
+                {/* Show 4 placeholder slots when no media */}
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <label
+                    key={`empty-${idx}`}
                     htmlFor="gallery-upload"
                     className="aspect-square bg-gray-800 rounded-xl flex items-center justify-center cursor-pointer hover:bg-gray-700 transition-colors"
                   >

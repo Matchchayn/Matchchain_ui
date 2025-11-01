@@ -12,6 +12,7 @@ import Home from './Home/index'
 import Settings from './Settings'
 import Likes from './components/Likes'
 import MatchesLikes from './components/MatchesLikes'
+import Messages from './components/Messages'
 import ProfileCreation from './components/Onboarding/ProfileCreation'
 import InterestSelection from './components/Onboarding/InterestSelection'
 import PreferencesSelection from './components/Onboarding/PreferencesSelection'
@@ -87,6 +88,18 @@ export default function App() {
 
   async function checkUserOnboarding(userId: string) {
     try {
+      // Check if onboarding was previously completed (stored in localStorage)
+      const onboardingCompleted = localStorage.getItem(`onboarding_completed_${userId}`)
+
+      if (onboardingCompleted === 'true') {
+        // User has completed onboarding before, set all flags to true
+        setHasProfile(true)
+        setHasInterests(true)
+        setHasPreferences(true)
+        setHasMedia(true)
+        return
+      }
+
       // Check if profile exists
       const { data: profileData, error: profileError } = await supabase
         .from('Profile')
@@ -149,6 +162,11 @@ export default function App() {
             // User has completed media if they have both intro video AND profile picture
             const hasCompletedMedia = !!videoData && !!photoData
             setHasMedia(hasCompletedMedia)
+
+            // If all onboarding steps are complete, save to localStorage
+            if (hasCompletedMedia) {
+              localStorage.setItem(`onboarding_completed_${userId}`, 'true')
+            }
           } else {
             setHasMedia(false)
           }
@@ -163,10 +181,23 @@ export default function App() {
       }
     } catch (error) {
       console.error('Error checking onboarding:', error)
-      setHasProfile(false)
-      setHasInterests(false)
-      setHasPreferences(false)
-      setHasMedia(false)
+
+      // If there's an error (e.g., no internet), check localStorage for previous completion
+      const onboardingCompleted = localStorage.getItem(`onboarding_completed_${userId}`)
+
+      if (onboardingCompleted === 'true') {
+        // User has completed onboarding before, use cached status
+        setHasProfile(true)
+        setHasInterests(true)
+        setHasPreferences(true)
+        setHasMedia(true)
+      } else {
+        // No cached status, assume incomplete
+        setHasProfile(false)
+        setHasInterests(false)
+        setHasPreferences(false)
+        setHasMedia(false)
+      }
     }
   }
 
@@ -188,6 +219,11 @@ export default function App() {
   const handleMediaComplete = async () => {
     setHasMedia(true)
     setOnboardingStep(0) // Reset onboarding step
+
+    // Mark onboarding as completed in localStorage
+    if (session) {
+      localStorage.setItem(`onboarding_completed_${session.user.id}`, 'true')
+    }
 
     // Clear signup_in_progress flag now that onboarding is complete
     localStorage.removeItem('signup_in_progress')
@@ -292,6 +328,7 @@ export default function App() {
           <Route path="/" element={<Home session={session} />} />
           <Route path="/likes" element={<Likes session={session} />} />
           <Route path="/matches" element={<MatchesLikes session={session} />} />
+          <Route path="/messages" element={<Messages session={session} />} />
           <Route path="/settings" element={<Settings session={session} />} />
            <Route
           path="/video-call/:sessionId"

@@ -54,13 +54,30 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
         const likerIds = likesData.map(like => like.user_id)
         const { data: profiles, error: profilesError } = await supabase
           .from('Profile')
-          .select('id, first_name, last_name, avatar_url')
+          .select('id, first_name, last_name')
           .in('id', likerIds)
 
         if (profilesError) throw profilesError
 
-        const likesWithProfiles = likesData.map(like => {
+        // Get profile pictures from user_media
+        const { data: mediaData } = await supabase
+          .from('user_media')
+          .select('user_id, media_url')
+          .in('user_id', likerIds)
+          .eq('display_order', 1)
+
+        const likesWithProfiles = await Promise.all(likesData.map(async like => {
           const profile = profiles?.find(p => p.id === like.user_id)
+          const media = mediaData?.find(m => m.user_id === like.user_id)
+
+          let avatarUrl = ''
+          if (media?.media_url) {
+            const { data: urlData } = await supabase.storage
+              .from('user-videos')
+              .createSignedUrl(media.media_url, 3600)
+            avatarUrl = urlData?.signedUrl || ''
+          }
+
           const createdAt = new Date(like.created_at)
           const timeStr = createdAt.toLocaleTimeString('en-US', {
             hour: 'numeric',
@@ -71,11 +88,11 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
           return {
             id: like.user_id,
             name: profile ? `${profile.first_name} ${profile.last_name || ''}`.trim() : 'Unknown',
-            avatar: profile?.avatar_url || '',
+            avatar: avatarUrl,
             message: 'Sent a Match request',
             time: timeStr
           }
-        })
+        }))
 
         setLikes(likesWithProfiles)
         setLikeCount(likesWithProfiles.length)
@@ -113,13 +130,30 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
         const matchIds = mutualLikes.map(like => like.user_id)
         const { data: profiles, error: profilesError } = await supabase
           .from('Profile')
-          .select('id, first_name, last_name, avatar_url')
+          .select('id, first_name, last_name')
           .in('id', matchIds)
 
         if (profilesError) throw profilesError
 
-        const matchesWithProfiles = mutualLikes.map(like => {
+        // Get profile pictures from user_media
+        const { data: mediaData } = await supabase
+          .from('user_media')
+          .select('user_id, media_url')
+          .in('user_id', matchIds)
+          .eq('display_order', 1)
+
+        const matchesWithProfiles = await Promise.all(mutualLikes.map(async like => {
           const profile = profiles?.find(p => p.id === like.user_id)
+          const media = mediaData?.find(m => m.user_id === like.user_id)
+
+          let avatarUrl = ''
+          if (media?.media_url) {
+            const { data: urlData } = await supabase.storage
+              .from('user-videos')
+              .createSignedUrl(media.media_url, 3600)
+            avatarUrl = urlData?.signedUrl || ''
+          }
+
           const createdAt = new Date(like.created_at)
           const timeStr = createdAt.toLocaleTimeString('en-US', {
             hour: 'numeric',
@@ -130,14 +164,19 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
           return {
             id: like.user_id,
             name: profile ? `${profile.first_name} ${profile.last_name || ''}`.trim() : 'Unknown',
-            avatar: profile?.avatar_url || '',
+            avatar: avatarUrl,
             message: "It's a match!",
             time: timeStr
           }
-        })
+        }))
 
         setMatches(matchesWithProfiles)
         setMatchCount(matchesWithProfiles.length)
+
+        // Auto-create conversations for all matches
+        for (const match of matchesWithProfiles) {
+          await createOrGetConversation(match.id)
+        }
       } else {
         setMatches([])
         setMatchCount(0)
@@ -145,6 +184,34 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
     } catch (error) {
       console.error('Error fetching matches:', error)
     }
+  }
+
+  const createOrGetConversation = async (otherUserId: string) => {
+    try {
+      // Check if conversation already exists (either way around)
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(user1_id.eq.${session.user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${session.user.id})`)
+        .maybeSingle()
+
+      if (!existing) {
+        // Create new conversation
+        await supabase
+          .from('conversations')
+          .insert({
+            user1_id: session.user.id,
+            user2_id: otherUserId
+          })
+      }
+    } catch (error) {
+      console.error('Error creating conversation:', error)
+    }
+  }
+
+  const handleMessage = async () => {
+    // Navigate to messages page - conversation already exists from fetchMatches
+    navigate('/messages')
   }
 
   if (loading) {
@@ -280,9 +347,22 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
                       <p className="text-white/50 text-sm truncate">{item.message}</p>
                       <p className="text-white/40 text-xs mt-1">{item.time}</p>
                     </div>
-                    <button className="bg-purple-600 hover:bg-purple-700 text-white text-sm px-4 py-2 rounded-full font-medium transition-colors flex-shrink-0">
-                      View
-                    </button>
+                    <div className="flex gap-2 flex-shrink-0">
+                      {activeTab === 'matches' && (
+                        <button
+                          onClick={() => handleMessage()}
+                          className="bg-purple-600 hover:bg-purple-700 text-white text-sm px-4 py-2 rounded-full font-medium transition-colors flex items-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                          </svg>
+                          Message
+                        </button>
+                      )}
+                      <button className="bg-purple-600/20 hover:bg-purple-600/30 text-white text-sm px-4 py-2 rounded-full font-medium transition-colors">
+                        View
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -311,7 +391,7 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
               <span className="text-[10px] font-medium">Likes</span>
             </button>
             <button
-              onClick={() => {}}
+              onClick={() => navigate('/messages')}
               className="flex flex-col items-center gap-1 text-white/60 p-2"
             >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">

@@ -211,8 +211,13 @@ export async function fetchMatchingProfiles(
       })
     )
 
-    // 6. Shuffle results for variety
-    return shuffleArray(profilesWithData)
+    // 6. Filter out profiles without any media (no photo or video)
+    const profilesWithMedia = profilesWithData.filter(profile => profile.photoUrl !== null)
+
+    console.log(`After media filter: ${profilesWithMedia.length} profiles (excluded ${profilesWithData.length - profilesWithMedia.length} without media)`)
+
+    // 7. Shuffle results for variety
+    return shuffleArray(profilesWithMedia)
   } catch (error) {
     console.error('Error in fetchMatchingProfiles:', error)
     return []

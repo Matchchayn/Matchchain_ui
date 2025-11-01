@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../client'
 import type { Session } from '@supabase/supabase-js'
 import RelaxConnectMatchCard from '../RelaxConnectMatchCard'
+import onboardingstock from '../../assets/onboardingstock.jpg'
 
 interface MediaUploadProps {
   session: Session
@@ -232,7 +233,7 @@ export default function MediaUpload({ session, onComplete, onBack }: MediaUpload
       <div className="hidden lg:block lg:w-1/2 lg:flex-shrink-0 relative bg-[#0a0a1f]">
         <div className="relative w-full h-full overflow-hidden">
           <img
-            src="https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&auto=format&fit=crop"
+            src={onboardingstock}
             alt="Background"
             className="w-full h-full object-cover"
           />
