@@ -1,350 +1,456 @@
 import './index.css'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { VidbloqProvider } from "@vidbloq/react";
-import { supabase } from './client'
-import type { Session } from '@supabase/supabase-js'
 import { WalletContextProvider } from './contexts/WalletContextProvider'
-import Login from './components/Login'
-import Signup from './components/Signup'
-import ForgotPassword from './components/ForgotPassword'
+import Login from './components/Auth/Login'
+import Signup from './components/Auth/Signup'
+import ForgotPassword from './components/Auth/ForgotPassword'
 import Home from './Home/index'
 import Settings from './Settings'
+import Profile from './components/Profile'
 import Likes from './components/Likes'
 import MatchesLikes from './components/MatchesLikes'
 import Messages from './components/Messages'
+import Events from './components/Events'
 import ProfileCreation from './components/Onboarding/ProfileCreation'
 import InterestSelection from './components/Onboarding/InterestSelection'
 import PreferencesSelection from './components/Onboarding/PreferencesSelection'
 import MediaUpload from './components/Onboarding/MediaUpload'
+import CreateEvent from './components/CreateEvent'
+import EventDetails from './components/EventDetails'
 import VidbloqWrapper from './components/video/vidbloq-wrapper'
-import Alert from './components/Alert'
-// Loader component removed - no loading screens
 import { useAlert } from './hooks/useAlert'
+import TopLoader from './components/Common/TopLoader'
+import ConnectivityStatus from './components/Common/ConnectivityStatus'
+import IncomingCallModal from './components/Call/IncomingCallModal'
+import CallScreen from './components/Call/CallScreen'
+import { socketService } from './utils/socketService'
+
+import { GoogleOAuthProvider } from '@react-oauth/google'
+
+import { fetchUserProfile } from './utils/userProfileService'
 
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null)
+  // Synchronously initialize state from localStorage to prevent UI flashing on refresh
+  const [session, setSession] = useState<any>(() => {
+    const token = localStorage.getItem('token')
+    const userStr = localStorage.getItem('user')
+    if (token && userStr) {
+      try {
+        return { user: JSON.parse(userStr), token }
+      } catch (e) { }
+    }
+    return null
+  })
+
   const [hasProfile, setHasProfile] = useState<boolean | null>(null)
   const [hasInterests, setHasInterests] = useState<boolean | null>(null)
   const [hasPreferences, setHasPreferences] = useState<boolean | null>(null)
   const [hasMedia, setHasMedia] = useState<boolean | null>(null)
   const [onboardingStep, setOnboardingStep] = useState<number>(0)
-  // Loading state removed - no loading screens
-  const { alert, showAlert, closeAlert } = useAlert()
-  const apiKey = "sk_d7109a19b550475599657f33f6aa9e4a";
-  const apiSecret = "iUmSBvm5DZFS1bJSUmdWM3QEmD1b92Y/h10UXKf7H/o=";
+
+  const [isOnboardingChecked, setIsOnboardingChecked] = useState<boolean>(() => {
+    const token = localStorage.getItem('token')
+    const userStr = localStorage.getItem('user')
+    if (!token || !userStr) return true; // No session, show login instantly
+
+    const isSignupFlow = localStorage.getItem('isSignupFlow') === 'true';
+    if (!isSignupFlow) return true; // Not in signup, show home instantly
+
+    try {
+      const u = JSON.parse(userStr);
+      const uid = u.id || u._id;
+      const status = u.onboardingStatus;
+      if (status === 'completed' || status === 'media_uploaded' || localStorage.getItem(`onboarding_completed_${uid}`) === 'true') {
+        return true;
+      }
+    } catch (e) { }
+    return false; // Active signup flow without completion caching, show top loader
+  })
+  const { showAlert } = useAlert()
+  const [incomingCall, setIncomingCall] = useState<{
+    callType: 'phone' | 'video'
+    from: string
+    callerName: string
+    callerAvatar?: string
+    offer: RTCSessionDescriptionInit
+  } | null>(null)
+  const [activeIncomingCall, setActiveIncomingCall] = useState<{
+    callType: 'phone' | 'video'
+    from: string
+    callerName: string
+    callerAvatar?: string
+    offer: RTCSessionDescriptionInit
+  } | null>(null)
+  const apiKey = import.meta.env.VITE_VIDBLOQ_API_KEY || "";
+  const apiSecret = import.meta.env.VITE_VIDBLOQ_API_SECRET || "";
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    setSession(null)
+    setIsOnboardingChecked(true)
+  }
+
+  const refreshSession = () => {
+    const token = localStorage.getItem('token')
+    const user = localStorage.getItem('user')
+
+    if (token && user) {
+      try {
+        const userObj = JSON.parse(user)
+        const uid = userObj.id || userObj._id
+        const status = userObj.onboardingStatus;
+        setSession({ user: userObj, token })
+
+        const isSignupFlow = localStorage.getItem('isSignupFlow') === 'true';
+
+        if (!isSignupFlow || status === 'completed' || status === 'media_uploaded' || localStorage.getItem(`onboarding_completed_${uid}`) === 'true') {
+          localStorage.removeItem('isSignupFlow');
+          setHasProfile(true); setHasInterests(true); setHasPreferences(true); setHasMedia(true);
+          setOnboardingStep(0);
+          setIsOnboardingChecked(true); // <--- Set this IMMEDIATELY to prevent glimpse
+
+          fetchUserProfile(token).then(u => {
+            if (u) {
+              localStorage.setItem('user', JSON.stringify(u));
+              if (u.onboardingStatus === 'completed' || u.onboardingStatus === 'media_uploaded') {
+                localStorage.setItem(`onboarding_completed_${uid}`, 'true');
+              }
+            }
+          }).catch(e => console.error("Silent refresh failed:", e));
+          return;
+        }
+
+        if (status && status !== 'started') {
+          const profileDone = status !== 'profile_pending';
+          const interestsDone = ['interests_selected', 'preferences_set', 'media_uploaded', 'completed'].includes(status);
+          const preferencesDone = ['preferences_set', 'media_uploaded', 'completed'].includes(status);
+          const mediaDone = status === 'media_uploaded' || status === 'completed';
+
+          setHasProfile(profileDone);
+          setHasInterests(interestsDone);
+          setHasPreferences(preferencesDone);
+          setHasMedia(mediaDone);
+
+          if (!profileDone) setOnboardingStep(1);
+          else if (!interestsDone) setOnboardingStep(2);
+          else if (!preferencesDone) setOnboardingStep(3);
+          else if (!mediaDone) setOnboardingStep(4);
+          else setOnboardingStep(0);
+
+          setIsOnboardingChecked(true);
+          checkUserOnboarding(uid);
+          return;
+        }
+
+        // If no status or incomplete, wait for server check before showing anything
+        checkUserOnboarding(uid)
+      } catch (e) {
+        console.error("Session refresh error:", e)
+        handleSignOut() // Use existing signout logic
+      }
+    } else {
+      setSession(null)
+      setIsOnboardingChecked(true)
+    }
+  }
 
   useEffect(() => {
-    // Check if OAuth was cancelled (error in URL)
-    const urlParams = new URLSearchParams(window.location.search)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    const error = urlParams.get('error') || hashParams.get('error')
-
-    if (error === 'access_denied') {
-      // OAuth was cancelled, redirect to login
-      window.location.href = `${window.location.origin}/login`
-      return
-    }
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      // Check if signup is in progress
-      const signupInProgress = localStorage.getItem('signup_in_progress')
-
-      setSession(session)
-      if (session && !signupInProgress) {
-        checkUserOnboarding(session.user.id)
-      }
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      // Check if signup is in progress
-      const signupInProgress = localStorage.getItem('signup_in_progress')
-      const needsPassword = localStorage.getItem('signup_needs_password')
-      const passwordResetInProgress = localStorage.getItem('password_reset_in_progress')
-
-      setSession(session)
-
-      // Don't check onboarding if user is still in signup flow or resetting password
-      if (signupInProgress || needsPassword || passwordResetInProgress) {
-        return
-      }
-
-      // Only check onboarding on SIGNED_IN event, not on every auth change
-      // This prevents unnecessary re-checks that can cause flicker/redirects
-      if (session && event === 'SIGNED_IN') {
-        checkUserOnboarding(session.user.id)
-      } else if (!session) {
-        setHasProfile(null)
-        setHasInterests(null)
-        setHasPreferences(null)
-        setHasMedia(null)
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    refreshSession()
   }, [])
+
+  // Keep a ref to the latest incomingCall setter so the socket listener never goes stale
+  const incomingCallHandlerRef = useRef<(data: any) => void>(() => { })
+  incomingCallHandlerRef.current = (data: any) => {
+    console.log('📞 incoming_call event received:', data)
+    setIncomingCall({
+      callType: data.callType || 'phone',
+      from: data.from,
+      callerName: data.callerName || 'Someone',
+      callerAvatar: data.callerAvatar,
+      offer: data.offer,
+    })
+  }
+
+  // Connect socket & register incoming call listener ONCE
+  const socketListenerRegistered = useRef(false)
+  useEffect(() => {
+    if (session?.user) {
+      // Use _id consistently as the primary identifier for sockets/signaling
+      const uid = session.user._id || session.user.id
+      if (uid) {
+        socketService.connect(uid)
+        console.log('🔌 Socket connection synchronized for user:', uid)
+
+        // Only register the listener once
+        if (!socketListenerRegistered.current) {
+          const socket = socketService.getSocket()
+          if (socket) {
+            socket.on('incoming_call', (data: any) => {
+              console.log('📞 Received incoming_call event on socket:', data)
+              incomingCallHandlerRef.current(data)
+            })
+            socketListenerRegistered.current = true
+            console.log('📞 Global incoming_call listener established')
+          }
+        }
+      }
+    }
+    // NO cleanup — listener stays alive for the entire app lifecycle
+  }, [session])
+
+  const handleAcceptCall = () => {
+    if (!incomingCall) return
+    setActiveIncomingCall({
+      callType: incomingCall.callType,
+      from: incomingCall.from,
+      callerName: incomingCall.callerName,
+      callerAvatar: incomingCall.callerAvatar,
+      offer: incomingCall.offer,
+    })
+    setIncomingCall(null)
+  }
+
+  const handleRejectCall = () => {
+    if (!incomingCall) return
+    const socket = socketService.getSocket()
+    socket?.emit('call_reject', { to: incomingCall.from })
+    setIncomingCall(null)
+  }
 
   async function checkUserOnboarding(userId: string) {
     try {
-      // Check if onboarding was previously completed (stored in localStorage)
-      const onboardingCompleted = localStorage.getItem(`onboarding_completed_${userId}`)
+      const token = localStorage.getItem('token')
+      const user = await fetchUserProfile(token || '')
 
-      if (onboardingCompleted === 'true') {
-        // User has completed onboarding before, set all flags to true
-        setHasProfile(true)
+      if (!user) throw new Error('No user data returned')
+
+      // Sync fresh data to localStorage
+      localStorage.setItem('user', JSON.stringify(user))
+
+      // Check server-side status (or local storage override if they skipped Media step)
+      const onboardingCompletedLocally = localStorage.getItem(`onboarding_completed_${userId}`)
+
+      if (user.onboardingStatus === 'completed' || user.onboardingStatus === 'media_uploaded' || onboardingCompletedLocally === 'true') {
+        localStorage.setItem(`onboarding_completed_${userId}`, 'true')
+        localStorage.removeItem('isSignupFlow')
         setHasInterests(true)
         setHasPreferences(true)
         setHasMedia(true)
+        setHasProfile(true)
+        setOnboardingStep(0)
         return
       }
 
-      // Check if profile exists
-      const { data: profileData, error: profileError } = await supabase
-        .from('Profile')
-        .select('first_name')
-        .eq('id', userId)
-        .single()
+      // Determine step based on data presence
+      const profileDone = (user.onboardingStatus && user.onboardingStatus !== 'started') || (user.firstName && user.lastName)
+      const interestsDone = ['interests_selected', 'preferences_set', 'media_uploaded', 'completed'].includes(user.onboardingStatus) || (user.interests && user.interests.length > 0)
+      const preferencesDone = ['preferences_set', 'media_uploaded', 'completed'].includes(user.onboardingStatus) || (user.preferences && user.preferences.lookingForGender)
+      const mediaDone = user.onboardingStatus === 'completed' || user.onboardingStatus === 'media_uploaded' || (user.avatarUrl && user.videoUrl)
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        throw profileError
-      }
+      setHasProfile(profileDone)
+      setHasInterests(interestsDone)
+      setHasPreferences(preferencesDone)
+      setHasMedia(mediaDone)
 
-      const profileExists = profileData && profileData.first_name
-      setHasProfile(!!profileExists)
+      // Set the active step to where they left off
+      if (!profileDone) setOnboardingStep(1)
+      else if (!interestsDone) setOnboardingStep(2)
+      else if (!preferencesDone) setOnboardingStep(3)
+      else if (!mediaDone) setOnboardingStep(4)
+      else setOnboardingStep(0)
 
-      // Check interests if profile is complete
-      if (profileExists) {
-        const { data: interestsData, error: interestsError } = await supabase
-          .from('user_interests')
-          .select('id')
-          .eq('user_id', userId)
-          .limit(1)
+    } catch (error: any) {
+      console.error('Onboarding check failed:', error)
 
-        if (interestsError) throw interestsError
-        const interestsExist = interestsData && interestsData.length > 0
-        setHasInterests(!!interestsExist)
+      // Fallback: If network glitches, trust what we have in localStorage to avoid forcing onboarding
+      const userStr = localStorage.getItem('user')
+      const onboardFlag = localStorage.getItem(`onboarding_completed_${userId}`)
 
-        // Check preferences if interests are complete
-        if (interestsExist) {
-          const { data: preferencesData, error: preferencesError } = await supabase
-            .from('user_preferences')
-            .select('id')
-            .eq('user_id', userId)
-            .single()
-
-          if (preferencesError && preferencesError.code !== 'PGRST116') {
-            throw preferencesError
-          }
-
-          const preferencesExist = !!preferencesData
-          setHasPreferences(preferencesExist)
-
-          // Check media if preferences are complete
-          if (preferencesExist) {
-            // Check if user has uploaded intro video OR profile picture (photo with display_order 1)
-            const { data: videoData } = await supabase
-              .from('user_media')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('media_type', 'intro_video')
-              .maybeSingle()
-
-            const { data: photoData } = await supabase
-              .from('user_media')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('media_type', 'photo')
-              .eq('display_order', 1)
-              .maybeSingle()
-
-            // User has completed media if they have both intro video AND profile picture
-            const hasCompletedMedia = !!videoData && !!photoData
-            setHasMedia(hasCompletedMedia)
-
-            // If all onboarding steps are complete, save to localStorage
-            if (hasCompletedMedia) {
-              localStorage.setItem(`onboarding_completed_${userId}`, 'true')
-            }
+      if (onboardFlag === 'true') {
+        setHasInterests(true); setHasPreferences(true); setHasMedia(true); setHasProfile(true);
+        setOnboardingStep(0)
+      } else if (userStr) {
+        try {
+          const localUser = JSON.parse(userStr)
+          // If they have any sign of a completed profile (firstName exists) OR a positive status, don't reset them
+          if (localUser.firstName || localUser.onboardingStatus === 'completed' || localUser.onboardingStatus === 'media_uploaded') {
+            setHasProfile(true); setHasInterests(true); setHasPreferences(true); setHasMedia(true);
+            setOnboardingStep(0)
           } else {
-            setHasMedia(false)
+            // Only force onboarding if it's clearly a fresh account with no data
+            setOnboardingStep(1)
           }
-        } else {
-          setHasPreferences(false)
-          setHasMedia(false)
+        } catch {
+          setOnboardingStep(1)
         }
       } else {
-        setHasInterests(false)
-        setHasPreferences(false)
-        setHasMedia(false)
+        setOnboardingStep(1)
       }
-    } catch (error) {
-      console.error('Error checking onboarding:', error)
-
-      // If there's an error (e.g., no internet), check localStorage for previous completion
-      const onboardingCompleted = localStorage.getItem(`onboarding_completed_${userId}`)
-
-      if (onboardingCompleted === 'true') {
-        // User has completed onboarding before, use cached status
-        setHasProfile(true)
-        setHasInterests(true)
-        setHasPreferences(true)
-        setHasMedia(true)
-      } else {
-        // No cached status, assume incomplete
-        setHasProfile(false)
-        setHasInterests(false)
-        setHasPreferences(false)
-        setHasMedia(false)
-      }
+    } finally {
+      setIsOnboardingChecked(true)
     }
   }
 
   const handleProfileComplete = () => {
     setHasProfile(true)
     setOnboardingStep(2)
+    // Persist partially completed state locally to survive glitches
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    localStorage.setItem('user', JSON.stringify({ ...user, onboardingStatus: 'profile_completed', firstName: 'Pending' }))
   }
 
   const handleInterestsComplete = () => {
     setHasInterests(true)
     setOnboardingStep(3)
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    localStorage.setItem('user', JSON.stringify({ ...user, onboardingStatus: 'interests_selected' }))
   }
 
   const handlePreferencesComplete = () => {
     setHasPreferences(true)
     setOnboardingStep(4)
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    localStorage.setItem('user', JSON.stringify({ ...user, onboardingStatus: 'preferences_set' }))
   }
 
   const handleMediaComplete = async () => {
     setHasMedia(true)
-    setOnboardingStep(0) // Reset onboarding step
-
-    // Mark onboarding as completed in localStorage
+    setOnboardingStep(0)
+    localStorage.removeItem('isSignupFlow')
     if (session) {
-      localStorage.setItem(`onboarding_completed_${session.user.id}`, 'true')
+      const uid = session.user.id || session.user._id
+      localStorage.setItem(`onboarding_completed_${uid}`, 'true')
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      localStorage.setItem('user', JSON.stringify({ ...user, onboardingStatus: 'completed' }))
     }
-
-    // Clear signup_in_progress flag now that onboarding is complete
-    localStorage.removeItem('signup_in_progress')
-
-    // Force re-check onboarding to ensure all data is synced
-    if (session) {
-      await checkUserOnboarding(session.user.id)
-    }
-
-    showAlert('Welcome to MatchChayn! Your profile is complete.', 'success')
+    showAlert('Welcome! Your profile is complete.', 'success')
   }
 
-  const handleBackToProfile = () => {
-    setOnboardingStep(1)
-  }
+  const handleBackToProfile = () => setOnboardingStep(1)
+  const handleBackToInterests = () => setOnboardingStep(2)
+  const handleBackToPreferences = () => setOnboardingStep(3)
 
-  const handleBackToInterests = () => {
-    setOnboardingStep(2)
-  }
-
-  const handleBackToPreferences = () => {
-    setOnboardingStep(3)
-  }
-
-  // Remove loading screen - let content load in background
-
-  // Check if signup is in progress
-  const needsPassword = localStorage.getItem('signup_needs_password')
-  const passwordResetInProgress = localStorage.getItem('password_reset_in_progress')
-
-  // If password reset is in progress, show forgot password page (even if session exists)
-  if (passwordResetInProgress) {
-    return (
-      <Router>
-        <Routes>
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="*" element={<Navigate to="/forgot-password" replace />} />
-        </Routes>
-      </Router>
-    )
-  }
-
-  // If no session, show login/signup/forgot-password pages
   if (!session) {
     return (
-      <Router>
-        <Routes>
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Router>
+      <GoogleOAuthProvider clientId={googleClientId}>
+        <ConnectivityStatus />
+        <Router>
+          <Routes>
+            <Route path="/signup" element={<Signup onSignupSuccess={refreshSession} />} />
+            <Route path="/login" element={<Login onLoginSuccess={refreshSession} />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Router>
+      </GoogleOAuthProvider>
     )
   }
 
-  // If user needs to set password (in middle of signup flow), show signup page
-  if (needsPassword) {
+  // Prevent "Glimpse" of Home: Wait for onboarding status check to finish
+  if (!isOnboardingChecked) {
     return (
-      <Router>
-        <Routes>
-          <Route path="/signup" element={<Signup />} />
-          <Route path="*" element={<Navigate to="/signup" replace />} />
-        </Routes>
-      </Router>
+      <div className="min-h-screen bg-[#090a1e]">
+        <ConnectivityStatus />
+        <TopLoader message="Loading..." />
+      </div>
     )
   }
 
-  // If signupInProgress is set but no needsPassword, user is in onboarding flow
-  // Let them proceed through onboarding steps below
-
-  // Only show onboarding steps if onboardingStep is explicitly set (for back navigation)
-  // OR if the step is actually incomplete
-
-  // Step 1: Complete Profile
-  if (onboardingStep === 1 || (hasProfile === false && onboardingStep === 0)) {
-    return <ProfileCreation session={session} onComplete={handleProfileComplete} />
+  // Onboarding logic: Profile -> Interests -> Preferences -> Media
+  if (onboardingStep === 1 || (hasProfile === false && (onboardingStep === 0 || onboardingStep === 1))) {
+    return (
+      <>
+        <ConnectivityStatus />
+        <ProfileCreation session={session} onComplete={handleProfileComplete} />
+      </>
+    )
+  }
+  if (onboardingStep === 2 || (hasInterests === false && (onboardingStep === 0 || onboardingStep === 2))) {
+    return (
+      <>
+        <ConnectivityStatus />
+        <InterestSelection session={session} onComplete={handleInterestsComplete} onBack={handleBackToProfile} />
+      </>
+    )
+  }
+  if (onboardingStep === 3 || (hasPreferences === false && (onboardingStep === 0 || onboardingStep === 3))) {
+    return (
+      <>
+        <ConnectivityStatus />
+        <PreferencesSelection session={session} onComplete={handlePreferencesComplete} onBack={handleBackToInterests} />
+      </>
+    )
+  }
+  if (onboardingStep === 4 || (hasMedia === false && (onboardingStep === 0 || onboardingStep === 4))) {
+    return (
+      <>
+        <ConnectivityStatus />
+        <MediaUpload session={session} onComplete={handleMediaComplete} onBack={handleBackToPreferences} />
+      </>
+    )
   }
 
-  // Step 2: Select Interests
-  if (onboardingStep === 2 || (hasInterests === false && hasProfile === true && onboardingStep === 0)) {
-    return <InterestSelection session={session} onComplete={handleInterestsComplete} onBack={handleBackToProfile} />
-  }
-
-  // Step 3: Set Preferences
-  if (onboardingStep === 3 || (hasPreferences === false && hasInterests === true && onboardingStep === 0)) {
-    return <PreferencesSelection session={session} onComplete={handlePreferencesComplete} onBack={handleBackToInterests} />
-  }
-
-  // Step 4: Upload Media
-  if (onboardingStep === 4 || (hasMedia === false && hasPreferences === true && onboardingStep === 0)) {
-    return <MediaUpload session={session} onComplete={handleMediaComplete} onBack={handleBackToPreferences} />
-  }
-
-  // Remove loading screen - let onboarding states load in background
-
-  // Step 5: Go to Home
   return (
-    <WalletContextProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Home session={session} />} />
-          <Route path="/likes" element={<Likes session={session} />} />
-          <Route path="/matches" element={<MatchesLikes session={session} />} />
-          <Route path="/messages" element={<Messages session={session} />} />
-          <Route path="/settings" element={<Settings session={session} />} />
-           <Route
-          path="/video-call/:sessionId"
-          element={
-              <VidbloqProvider
-                apiKey={apiKey || ""}
-                apiSecret={apiSecret || ""}
-              >
-                <VidbloqWrapper />
-              </VidbloqProvider>
-          }
-        />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-      {alert && <Alert message={alert.message} type={alert.type} onClose={closeAlert} />}
-    </WalletContextProvider>
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <WalletContextProvider>
+        <ConnectivityStatus />
+        <Router>
+          <div className="transition-all duration-300 min-h-screen flex flex-col" style={{ paddingTop: 'var(--connectivity-height, 0px)' }}>
+            <Routes>
+              <Route path="/" element={<Home session={session} />} />
+              <Route path="/likes" element={<Likes session={session} />} />
+              <Route path="/matches" element={<MatchesLikes session={session} />} />
+              <Route path="/profile" element={<Profile session={session} />} />
+              <Route path="/messages" element={<Messages session={session} />} />
+              <Route path="/events" element={<Events session={session} />} />
+              <Route path="/events/:id" element={<EventDetails session={session} />} />
+              <Route path="/events/create" element={<CreateEvent session={session} />} />
+              <Route path="/events/edit/:id" element={<CreateEvent session={session} />} />
+              <Route path="/settings" element={<Settings session={session} />} />
+              <Route
+                path="/video-call/:sessionId"
+                element={
+                  <VidbloqProvider apiKey={apiKey} apiSecret={apiSecret}>
+                    <VidbloqWrapper />
+                  </VidbloqProvider>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+
+        {/* Global Incoming Call Modal — works on any page */}
+        {incomingCall && (
+          <IncomingCallModal
+            callType={incomingCall.callType}
+            callerName={incomingCall.callerName}
+            callerAvatar={incomingCall.callerAvatar}
+            onAccept={handleAcceptCall}
+            onReject={handleRejectCall}
+          />
+        )}
+
+        {/* Global Call Screen for receiver */}
+        {activeIncomingCall && session?.user && (
+          <CallScreen
+            callType={activeIncomingCall.callType}
+            currentUserId={session.user.id || session.user._id}
+            otherUser={{
+              id: activeIncomingCall.from,
+              first_name: activeIncomingCall.callerName.split(' ')[0],
+              last_name: activeIncomingCall.callerName.split(' ').slice(1).join(' '),
+              avatar_url: activeIncomingCall.callerAvatar,
+            }}
+            incomingOffer={activeIncomingCall.offer}
+            onClose={() => setActiveIncomingCall(null)}
+          />
+        )}
+      </WalletContextProvider>
+    </GoogleOAuthProvider>
   )
 }

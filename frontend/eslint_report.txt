@@ -1,0 +1,187 @@
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\App.tsx
+   36:42  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+   42:16  error    'e' is defined but never used                                                                                      @typescript-eslint/no-unused-vars
+   42:19  error    Empty block statement                                                                                              no-empty
+   68:14  error    'e' is defined but never used                                                                                      @typescript-eslint/no-unused-vars
+   68:17  error    Empty block statement                                                                                              no-empty
+  163:6   warning  React Hook useEffect has a missing dependency: 'refreshSession'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  166:48  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  167:43  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  192:47  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  266:21  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\Home\Header.tsx
+  55:6   warning  React Hook useEffect has a missing dependency: 'fetchUserAvatar'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  67:14  error    'err' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  67:19  error    Empty block statement                                                                                               no-empty
+  93:38  error    Unexpected any. Specify a different type                                                                            @typescript-eslint/no-explicit-any
+  95:15  error    Empty block statement                                                                                               no-empty
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\Home\RightSidebar.tsx
+  18:12  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  53:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  65:51  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  73:55  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\Home\Stories.tsx
+   34:6   warning  React Hook useEffect has a missing dependency: 'fetchStatuses'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  176:27  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+  208:6   warning  React Hook useEffect has a missing dependency: 'handleNext'. Either include it or remove the dependency array     react-hooks/exhaustive-deps
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\Home\index.tsx
+  28:43  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  43:6   warning  React Hook useEffect has a missing dependency: 'fetchUsers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  78:14  error    'error' is defined but never used                                                                              @typescript-eslint/no-unused-vars
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\Settings.tsx
+  4:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Auth\ForgotPassword.tsx
+   56:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   77:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Auth\Login.tsx
+  47:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Auth\Signup.tsx
+   85:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  128:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  146:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Auth\third_party_auth\GoogleAuth.tsx
+  34:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Call\useCallManager.ts
+   25:40  error    Unexpected any. Specify a different type                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   49:23  error    Unexpected any. Specify a different type                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  137:8   warning  React Hook useCallback has missing dependencies: 'endCall' and 'iceServers'. Either include them or remove the dependency array                                                                          react-hooks/exhaustive-deps
+  260:49  error    Unexpected any. Specify a different type                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  264:57  error    Unexpected any. Specify a different type                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  282:8   warning  React Hook useEffect has missing dependencies: 'answerCall', 'handleAnswer', 'handleIceCandidate', 'incomingOffer', 'initiateCall', and 'onCallEnd'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\ChatWindow.tsx
+   21:14  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   31:46  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   39:35  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   57:39  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   63:44  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   69:41  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   71:31  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+   99:6   warning  React Hook useEffect has missing dependencies: 'fetchMessages' and 'initialOtherUser'. Either include them or remove the dependency array. If 'setOtherUser' needs the current value of 'initialOtherUser', you can also switch to useReducer instead of useState and read 'initialOtherUser' in the reducer  react-hooks/exhaustive-deps
+  118:59  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+  322:36  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                      @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\CreateEvent.tsx
+    8:37  error    Unexpected empty object pattern                                                                                    no-empty-pattern
+    8:54  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+   32:8   warning  React Hook useEffect has a missing dependency: 'fetchEventData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  111:18  error    'err' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+  317:58  error    'err' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\EventDetails.tsx
+  33:62  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+  45:8   warning  React Hook useEffect has a missing dependency: 'fetchEvent'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  64:18  error    'err' is defined but never used                                                                                @typescript-eslint/no-unused-vars
+  81:18  error    'e' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+  92:18  error    'e' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Events.tsx
+   35:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   61:18  error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+   61:23  error  Empty block statement                     no-empty
+   97:18  error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  220:78  error  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  220:83  error  Empty block statement                     no-empty
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Likes.tsx
+  11:12  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  15:26  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  19:54  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  24:6   warning  React Hook useEffect has a missing dependency: 'loadLikedProfiles'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\MatchesLikes.tsx
+   20:12  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   47:43  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   58:6   warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   71:51  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   80:55  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+  124:26  error    '_userId' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Messages.tsx
+  11:20  error    Unexpected any. Specify a different type                                                                                                        @typescript-eslint/no-explicit-any
+  45:52  error    Unexpected any. Specify a different type                                                                                                        @typescript-eslint/no-explicit-any
+  59:41  error    Unexpected any. Specify a different type                                                                                                        @typescript-eslint/no-explicit-any
+  73:6   warning  React Hook useEffect has missing dependencies: 'fetchConversations' and 'session.user._id'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  84:70  error    Unexpected any. Specify a different type                                                                                                        @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\NotificationModal.tsx
+  33:8   warning  React Hook useEffect has a missing dependency: 'fetchNotifications'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  50:43  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+  55:52  error    Unexpected any. Specify a different type                                                                               @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Onboarding\InterestSelection.tsx
+  14:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  86:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Onboarding\MediaUpload.tsx
+    9:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  153:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Onboarding\PreferencesSelection.tsx
+  11:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  80:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Onboarding\ProfileCreation.tsx
+  11:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  88:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\Profile.tsx
+  38:12  error    Unexpected any. Specify a different type                                                                         @typescript-eslint/no-explicit-any
+  50:6   warning  React Hook useEffect has a missing dependency: 'fetchProfile'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\ProfileSettings.tsx
+   33:9   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  142:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  168:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  271:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\StatusTray.tsx
+   27:8   warning  React Hook useEffect has a missing dependency: 'fetchStatuses'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  163:29  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+  168:8   warning  React Hook useEffect has a missing dependency: 'startTimer'. Either include it or remove the dependency array     react-hooks/exhaustive-deps
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\ui\input.tsx
+  3:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\ui\label.tsx
+  3:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\video\join-stream.tsx
+  1:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unused-vars')
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\components\video\meeting-room.tsx
+  23:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\utils\likesHandler.ts
+  26:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  60:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\utils\matchingAlgorithm.ts
+  36:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  53:12  error  'error' is defined but never used         @typescript-eslint/no-unused-vars
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\utils\socketService.ts
+  57:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\josep\Desktop\Matchchain_ui\frontend\src\utils\userProfileService.ts
+  2:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  3:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 115 problems (96 errors, 19 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

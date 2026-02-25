@@ -1,20 +1,27 @@
-import { useState } from 'react'
-
-interface AlertState {
-  message: string
-  type: 'success' | 'error' | 'info'
-}
+import Swal from 'sweetalert2'
 
 export function useAlert() {
-  const [alert, setAlert] = useState<AlertState | null>(null)
+  const showAlert = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'bottom-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+      background: '#1a1a2e',
+      color: '#fff',
+      iconColor: type === 'success' ? '#8b5cf6' : type === 'error' ? '#ef4444' : '#3b82f6',
+      didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer)
+        toast.addEventListener('mouseleave', Swal.resumeTimer)
+      }
+    })
 
-  const showAlert = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    setAlert({ message, type })
+    Toast.fire({
+      icon: type,
+      title: message
+    })
   }
 
-  const closeAlert = () => {
-    setAlert(null)
-  }
-
-  return { alert, showAlert, closeAlert }
+  return { showAlert, alert: null, closeAlert: () => { } }
 }

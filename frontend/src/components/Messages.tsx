@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../client'
-import type { Session } from '@supabase/supabase-js'
 import Header from '../Home/Header'
 import Sidebar from './Sidebar'
 import ChatWindow from './ChatWindow'
+import MobileBottomNav from './MobileBottomNav'
+import { socketService } from '../utils/socketService'
+import { API_BASE_URL } from '../config';
+
+interface Session {
+  user: {
+    id: string;
+    [key: string]: any;
+  };
+  token: string;
+}
+
 
 interface Conversation {
   id: string
@@ -28,198 +38,81 @@ interface MessagesProps {
 }
 
 export default function Messages({ session }: MessagesProps) {
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversations, setConversations] = useState<Conversation[]>(() => {
+    const cached = localStorage.getItem(`convos_${session.user.id}`)
+    return cached ? JSON.parse(cached) : []
+  })
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const [selectedUser, setSelectedUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => {
+    const cached = localStorage.getItem(`convos_${session.user.id}`)
+    return !cached // Only loading if no cache
+  })
 
   useEffect(() => {
-    fetchConversations()
-    subscribeToConversations()
+    const hasCache = !!localStorage.getItem(`convos_${session.user.id}`)
+    fetchConversations(!hasCache)
+
+    // Socket status listeners
+    socketService.connect(session.user.id || session.user._id)
+    const socket = socketService.getSocket()
+    if (socket) {
+      socket.on('status_change', (data: any) => {
+        setConversations(prev => prev.map(convo =>
+          convo.other_user.id === data.userId
+            ? { ...convo, other_user: { ...convo.other_user, is_online: data.isOnline } }
+            : convo
+        ))
+      })
+    }
+
+    const interval = setInterval(() => fetchConversations(false), 10000)
+    return () => {
+      clearInterval(interval)
+      if (socket) socket.off('status_change')
+    }
   }, [session.user.id])
 
-  async function fetchConversations() {
+  async function fetchConversations(isInitial = false) {
     try {
-      console.log('Fetching matches for Messages page, user:', session.user.id)
+      if (isInitial) setLoading(true)
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API_BASE_URL}/api/conversations`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = await res.json()
 
-      // Get all matches (mutual likes)
-      const { data: myLikes, error: myLikesError } = await supabase
-        .from('user_likes')
-        .select('liked_user_id')
-        .eq('user_id', session.user.id)
+      const formattedConversations: Conversation[] = data.map((item: any) => ({
+        id: item.otherUser._id,
+        other_user: {
+          id: item.otherUser._id,
+          first_name: item.otherUser.firstName,
+          last_name: item.otherUser.lastName,
+          avatar_url: item.otherUser.avatarUrl,
+          is_online: item.otherUser.isOnline
+        },
+        last_message: item.lastMessage ? {
+          content: item.lastMessage.content,
+          created_at: item.lastMessage.createdAt,
+          is_read: item.lastMessage.isRead,
+          message_type: item.lastMessage.messageType
+        } : null,
+        unread_count: 0
+      }))
 
-      if (myLikesError) throw myLikesError
-
-      const { data: theirLikes, error: theirLikesError } = await supabase
-        .from('user_likes')
-        .select('user_id, created_at')
-        .eq('liked_user_id', session.user.id)
-
-      if (theirLikesError) throw theirLikesError
-
-      const myLikedIds = myLikes?.map(like => like.liked_user_id) || []
-      const mutualLikes = theirLikes?.filter(like => myLikedIds.includes(like.user_id)) || []
-
-      console.log('Found', mutualLikes.length, 'matches')
-
-      if (mutualLikes.length === 0) {
-        setConversations([])
-        setLoading(false)
-        return
-      }
-
-      // For each match, get their details
-      const conversationsWithDetails = await Promise.all(
-        mutualLikes.map(async (like) => {
-          const otherUserId = like.user_id
-
-          // Get other user's profile
-          const { data: profile } = await supabase
-            .from('Profile')
-            .select('first_name, last_name')
-            .eq('id', otherUserId)
-            .single()
-
-          // Get profile picture from user_media (display_order: 1)
-          const { data: profileMedia } = await supabase
-            .from('user_media')
-            .select('media_url')
-            .eq('user_id', otherUserId)
-            .eq('display_order', 1)
-            .maybeSingle()
-
-          let avatarUrl = null
-          if (profileMedia?.media_url) {
-            const { data: urlData } = await supabase.storage
-              .from('user-videos')
-              .createSignedUrl(profileMedia.media_url, 3600)
-            avatarUrl = urlData?.signedUrl || null
-          }
-
-          // Get online status
-          const { data: presence } = await supabase
-            .from('user_presence')
-            .select('is_online')
-            .eq('user_id', otherUserId)
-            .maybeSingle()
-
-          // Check if conversation exists (either way around)
-          const { data: conversation } = await supabase
-            .from('conversations')
-            .select('id, updated_at')
-            .or(`and(user1_id.eq.${session.user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${session.user.id})`)
-            .maybeSingle()
-
-          let lastMessage = null
-          let unreadCount = 0
-          let conversationId = conversation?.id || null
-
-          // If conversation exists, get messages
-          if (conversationId) {
-            const { data: msg } = await supabase
-              .from('messages')
-              .select('content, created_at, is_read, message_type')
-              .eq('conversation_id', conversationId)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle()
-
-            lastMessage = msg
-
-            // Get unread count
-            const { count } = await supabase
-              .from('messages')
-              .select('*', { count: 'exact', head: true })
-              .eq('conversation_id', conversationId)
-              .eq('is_read', false)
-              .neq('sender_id', session.user.id)
-
-            unreadCount = count || 0
-          }
-
-          return {
-            id: conversationId || `temp-${otherUserId}`,
-            other_user: {
-              id: otherUserId,
-              first_name: profile?.first_name || 'Unknown',
-              last_name: profile?.last_name || '',
-              avatar_url: avatarUrl,
-              is_online: presence?.is_online || false
-            },
-            last_message: lastMessage,
-            unread_count: unreadCount
-          }
-        })
-      )
-
-      setConversations(conversationsWithDetails)
+      setConversations(formattedConversations)
+      // Save to cache for next time
+      localStorage.setItem(`convos_${session.user.id}`, JSON.stringify(formattedConversations))
     } catch (error) {
       console.error('Error fetching conversations:', error)
     } finally {
-      setLoading(false)
-    }
-  }
-
-  function subscribeToConversations() {
-    // Subscribe to new messages to update conversation list
-    const channel = supabase
-      .channel('conversations-updates')
-      .on('postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages'
-        },
-        () => {
-          // Refresh conversations when any message is sent/received
-          fetchConversations()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
+      if (isInitial) setLoading(false)
     }
   }
 
   async function handleConversationClick(convo: Conversation) {
-    console.log('handleConversationClick called with convo:', convo)
     setSelectedUser(convo.other_user)
-
-    // If conversation doesn't exist yet (temp ID), create it
-    if (convo.id.startsWith('temp-')) {
-      const otherUserId = convo.other_user.id
-      console.log('Creating new conversation for user:', otherUserId)
-
-      // Set temp ID first so ChatWindow can render immediately
-      setSelectedConversation(convo.id)
-
-      try {
-        const { data: newConvo, error } = await supabase
-          .from('conversations')
-          .insert({
-            user1_id: session.user.id,
-            user2_id: otherUserId
-          })
-          .select()
-          .single()
-
-        if (error) throw error
-
-        // Update with the real conversation ID
-        if (newConvo) {
-          console.log('Conversation created successfully:', newConvo.id)
-          setSelectedConversation(newConvo.id)
-          // Refresh to update the list with real ID
-          fetchConversations()
-        }
-      } catch (error) {
-        console.error('Error creating conversation:', error)
-      }
-    } else {
-      console.log('Using existing conversation:', convo.id)
-      setSelectedConversation(convo.id)
-    }
+    setSelectedConversation(convo.id)
   }
 
   function formatTime(timestamp: string) {
@@ -240,11 +133,11 @@ export default function Messages({ session }: MessagesProps) {
       <Sidebar />
       <Header userId={session.user.id} />
 
-      <div className="min-h-screen bg-[#0a0a1f] pt-16 lg:pt-20 lg:pl-64">
+      <div className="min-h-screen bg-[#090a1e] pt-16 lg:pt-20 lg:pl-64">
         <div className="flex h-[calc(100vh-4rem)] lg:h-[calc(100vh-5rem)]">
 
           {/* Left: Conversations List */}
-          <div className={`${selectedConversation ? 'hidden lg:block' : 'block'} w-full border-r border-purple-500/20 bg-[#0a0a1f]`} style={{ width: selectedConversation ? 'auto' : '100%', maxWidth: '400px' }}>
+          <div className={`${selectedConversation ? 'hidden lg:block' : 'block'} w-full border-r border-purple-500/20 bg-[#090a1e]`} style={{ width: selectedConversation ? '360px' : '100%', maxWidth: '400px' }}>
             <div className="p-3 border-b border-purple-500/20">
               <h1 className="text-xl font-bold text-white">Messages</h1>
             </div>
@@ -269,9 +162,8 @@ export default function Messages({ session }: MessagesProps) {
                   <button
                     key={convo.id}
                     onClick={() => handleConversationClick(convo)}
-                    className={`w-full p-4 flex items-start gap-3 hover:bg-purple-500/5 transition-colors ${
-                      selectedConversation === convo.id ? 'bg-purple-500/10' : ''
-                    }`}
+                    className={`w-full p-4 flex items-start gap-3 hover:bg-purple-500/5 transition-colors ${selectedConversation === convo.id ? 'bg-purple-500/10' : ''
+                      }`}
                   >
                     {/* Avatar */}
                     <div className="relative flex-shrink-0">
@@ -287,7 +179,7 @@ export default function Messages({ session }: MessagesProps) {
                         </div>
                       )}
                       {convo.other_user.is_online && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#0a0a1f]"></div>
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-[#090a1e]"></div>
                       )}
                     </div>
 
@@ -323,11 +215,11 @@ export default function Messages({ session }: MessagesProps) {
           </div>
 
           {/* Right: Chat Window */}
-          <div className={`${selectedConversation ? 'block' : 'hidden lg:block'} flex-1 bg-[#0a0a1f]`}>
+          <div className={`${selectedConversation ? 'block' : 'hidden lg:block'} flex-1 bg-[#090a1e]`}>
             {selectedConversation && selectedUser ? (
               <ChatWindow
                 conversationId={selectedConversation}
-                currentUserId={session.user.id}
+                currentUserId={session.user._id || session.user.id}
                 otherUser={selectedUser}
                 onBack={() => {
                   setSelectedConversation(null)
@@ -350,6 +242,9 @@ export default function Messages({ session }: MessagesProps) {
 
         </div>
       </div>
+
+      {/* Mobile Bottom Nav — only visible when conversation list is showing */}
+      {!selectedConversation && <MobileBottomNav />}
     </>
   )
 }

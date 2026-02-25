@@ -1,0 +1,4 @@
+src/components/Common/CustomDropdown.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/CreateEvent.tsx(8,37): error TS6133: 'session' is declared but its value is never read.
+src/components/Onboarding/InterestSelection.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/Home/index.tsx(29,9): error TS6133: 'navigate' is declared but its value is never read.

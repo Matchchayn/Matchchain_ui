@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../../client'
-import type { Session } from '@supabase/supabase-js'
 import RelaxConnectMatchCard from '../RelaxConnectMatchCard'
 import onboardingstock from '../../assets/onboardingstock.jpg'
+import { clearProfileCache } from '../../utils/userProfileService'
+
+import CustomDropdown from '../Common/CustomDropdown'
+
+import { useAlert } from '../../hooks/useAlert'
+import { API_BASE_URL } from '../../config';
 
 interface PreferencesSelectionProps {
-  session: Session
+  session: any
   onComplete: () => void
   onBack?: () => void
 }
 
 export default function PreferencesSelection({ session, onComplete, onBack }: PreferencesSelectionProps) {
+  const { showAlert } = useAlert()
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -25,39 +30,56 @@ export default function PreferencesSelection({ session, onComplete, onBack }: Pr
   }, [onBack])
 
   const [preferences, setPreferences] = useState({
-    looking_for_gender: '',
-    looking_for_relationship_status: '',
-    distance_km: 186,
-    age_min: 18,
-    age_max: 40,
-    height_min_cm: 158,
-    height_max_cm: 300
+    lookingForGender: '',
+    lookingForRelationshipStatus: '',
+    distanceKm: 50,
+    ageMin: 18,
+    ageMax: 40,
+    heightMinCm: 150,
+    heightMaxCm: 200
   })
 
+  const genderOptions = [
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+    { value: 'other', label: 'Other' },
+    { value: 'any', label: 'Any' }
+  ]
+
+  const statusOptions = [
+    { value: 'single', label: 'Single' },
+    { value: 'in_relationship', label: 'In a Relationship' },
+    { value: 'married', label: 'Married' },
+    { value: 'complicated', label: "It's Complicated" },
+    { value: 'any', label: 'Any' }
+  ]
+
   const handleSubmit = async () => {
-    if (!preferences.looking_for_gender || !preferences.looking_for_relationship_status) {
+    if (!preferences.lookingForGender || !preferences.lookingForRelationshipStatus) {
+      showAlert('Please select your preferences', 'warning')
       return
     }
 
     try {
       setLoading(true)
 
-      const { error } = await supabase.from('user_preferences').upsert({
-        user_id: session.user.id,
-        looking_for_gender: preferences.looking_for_gender,
-        looking_for_relationship_status: preferences.looking_for_relationship_status,
-        distance_km: preferences.distance_km,
-        age_min: preferences.age_min,
-        age_max: preferences.age_max,
-        height_min_cm: preferences.height_min_cm,
-        height_max_cm: preferences.height_max_cm,
-        updated_at: new Date().toISOString(),
+      const response = await fetch(`${API_BASE_URL}/api/user/preferences`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.token}`
+        },
+        body: JSON.stringify({ preferences }),
       })
 
-      if (error) throw error
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || 'Failed to save preferences')
 
+      clearProfileCache()
+      showAlert('Preferences saved!', 'success')
       onComplete()
-    } catch (error) {
+    } catch (error: any) {
+      showAlert(error.message, 'error')
       console.error('Error saving preferences:', error)
     } finally {
       setLoading(false)
@@ -65,9 +87,9 @@ export default function PreferencesSelection({ session, onComplete, onBack }: Pr
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#0a0a1f]">
-      {/* Left Side - Image (Hidden on mobile) */}
-      <div className="hidden lg:block lg:w-1/2 lg:flex-shrink-0 relative bg-[#0a0a1f]">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#090a1e] text-white">
+      {/* Left Side - Image */}
+      <div className="hidden lg:block lg:w-1/2 lg:flex-shrink-0 relative bg-[#090a1e]">
         <div className="relative w-full h-full overflow-hidden">
           <img
             src={onboardingstock}
@@ -79,184 +101,132 @@ export default function PreferencesSelection({ session, onComplete, onBack }: Pr
       </div>
 
       {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 min-h-screen bg-[#0a0a1f]">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 min-h-screen bg-[#090a1e]">
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-4">
-            <svg className="w-6 h-6 text-purple-500" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            <svg className="w-8 h-8 text-purple-500" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
             </svg>
-            <h1 className="text-xl font-bold text-white">MATCHCHAYN</h1>
+            <h1 className="text-2xl font-bold tracking-widest uppercase">MATCHCHAYN</h1>
           </div>
 
           {/* Progress */}
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <div className="h-1 w-12 bg-purple-600 rounded-full"></div>
-            <div className="h-1 w-12 bg-purple-600 rounded-full"></div>
-            <div className="h-1 w-12 bg-purple-600 rounded-full"></div>
-            <div className="h-1 w-12 bg-gray-600 rounded-full"></div>
-            <span className="text-gray-400 text-sm ml-2">3/4</span>
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="h-1 flex-1 bg-purple-600 rounded-full"></div>
+            <div className="h-1 flex-1 bg-purple-600 rounded-full"></div>
+            <div className="h-1 flex-1 bg-purple-600 rounded-full"></div>
+            <div className="h-1 flex-1 bg-gray-800 rounded-full"></div>
+            <span className="text-gray-400 text-xs ml-2 font-mono">3/4</span>
           </div>
 
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-white mb-2">Who are you looking to meet?</h2>
-            <p className="text-gray-400 text-sm">The better we know your preferences, the better your matches.</p>
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold mb-3 text-white">Your Frequency</h2>
+            <p className="text-gray-400 text-base">Who are you looking to meet on-chain?</p>
           </div>
 
           <div className="space-y-6">
-            {/* Gender & Relationship Status */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-300 text-sm mb-2">Gender</label>
-                <select
-                  value={preferences.looking_for_gender}
-                  onChange={(e) => setPreferences({ ...preferences, looking_for_gender: e.target.value })}
-                  className="w-full px-4 py-3 bg-[#1f1f3a] border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                >
-                  <option value="">Select...</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                  <option value="any">Any</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-gray-300 text-sm mb-2">Relationship status</label>
-                <select
-                  value={preferences.looking_for_relationship_status}
-                  onChange={(e) => setPreferences({ ...preferences, looking_for_relationship_status: e.target.value })}
-                  className="w-full px-4 py-3 bg-[#1f1f3a] border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                >
-                  <option value="">Select...</option>
-                  <option value="single">Single</option>
-                  <option value="in_relationship">In a Relationship</option>
-                  <option value="married">Married</option>
-                  <option value="complicated">It's Complicated</option>
-                  <option value="any">Any</option>
-                </select>
-              </div>
+              <CustomDropdown
+                label="Gender"
+                options={genderOptions}
+                value={preferences.lookingForGender}
+                onChange={(val) => setPreferences({ ...preferences, lookingForGender: val })}
+              />
+              <CustomDropdown
+                label="Status"
+                options={statusOptions}
+                value={preferences.lookingForRelationshipStatus}
+                onChange={(val) => setPreferences({ ...preferences, lookingForRelationshipStatus: val })}
+              />
             </div>
 
-            {/* Distance Slider */}
             <div>
               <div className="flex justify-between mb-2">
-                <label className="text-gray-300 text-sm">Distance (km)</label>
-                <span className="text-white font-semibold">{preferences.distance_km}</span>
+                <label className="text-gray-400 text-xs font-mono uppercase">Max Distance</label>
+                <span className="text-purple-400 font-mono text-sm">{preferences.distanceKm} km</span>
               </div>
               <input
                 type="range"
                 min="1"
                 max="500"
-                value={preferences.distance_km}
-                onChange={(e) => setPreferences({ ...preferences, distance_km: parseInt(e.target.value) })}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-purple"
+                value={preferences.distanceKm}
+                onChange={(e) => setPreferences({ ...preferences, distanceKm: parseInt(e.target.value) })}
+                className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-600"
               />
             </div>
 
-            {/* Age Range */}
             <div>
-              <label className="block text-gray-300 text-sm mb-2">Age range</label>
+              <div className="flex justify-between mb-2">
+                <label className="text-gray-400 text-xs font-mono uppercase">Age Range</label>
+                <span className="text-purple-400 font-mono text-sm">{preferences.ageMin} - {preferences.ageMax}</span>
+              </div>
               <div className="flex items-center gap-4">
                 <input
                   type="range"
                   min="18"
                   max="100"
-                  value={preferences.age_min}
-                  onChange={(e) => {
-                    const newMin = parseInt(e.target.value)
-                    if (newMin < preferences.age_max) {
-                      setPreferences({ ...preferences, age_min: newMin })
-                    }
-                  }}
-                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-purple"
+                  value={preferences.ageMin}
+                  onChange={(e) => setPreferences({ ...preferences, ageMin: Math.min(parseInt(e.target.value), preferences.ageMax - 1) })}
+                  className="flex-1 h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
-                <span className="text-white font-semibold min-w-[60px] text-center">{preferences.age_min}-{preferences.age_max}</span>
                 <input
                   type="range"
                   min="18"
                   max="100"
-                  value={preferences.age_max}
-                  onChange={(e) => {
-                    const newMax = parseInt(e.target.value)
-                    if (newMax > preferences.age_min) {
-                      setPreferences({ ...preferences, age_max: newMax })
-                    }
-                  }}
-                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-purple"
+                  value={preferences.ageMax}
+                  onChange={(e) => setPreferences({ ...preferences, ageMax: Math.max(parseInt(e.target.value), preferences.ageMin + 1) })}
+                  className="flex-1 h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
               </div>
             </div>
 
-            {/* Height Range */}
             <div>
-              <label className="block text-gray-300 text-sm mb-2">Height (cm)</label>
+              <div className="flex justify-between mb-2">
+                <label className="text-gray-400 text-xs font-mono uppercase">Height (cm)</label>
+                <span className="text-purple-400 font-mono text-sm">{preferences.heightMinCm} - {preferences.heightMaxCm}</span>
+              </div>
               <div className="flex items-center gap-4">
                 <input
                   type="range"
                   min="100"
                   max="250"
-                  value={preferences.height_min_cm}
-                  onChange={(e) => {
-                    const newMin = parseInt(e.target.value)
-                    if (newMin < preferences.height_max_cm) {
-                      setPreferences({ ...preferences, height_min_cm: newMin })
-                    }
-                  }}
-                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-purple"
+                  value={preferences.heightMinCm}
+                  onChange={(e) => setPreferences({ ...preferences, heightMinCm: Math.min(parseInt(e.target.value), preferences.heightMaxCm - 1) })}
+                  className="flex-1 h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
-                <span className="text-white font-semibold min-w-[80px] text-center">{preferences.height_min_cm}-{preferences.height_max_cm}</span>
                 <input
                   type="range"
                   min="100"
                   max="250"
-                  value={preferences.height_max_cm}
-                  onChange={(e) => {
-                    const newMax = parseInt(e.target.value)
-                    if (newMax > preferences.height_min_cm) {
-                      setPreferences({ ...preferences, height_max_cm: newMax })
-                    }
-                  }}
-                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-purple"
+                  value={preferences.heightMaxCm}
+                  onChange={(e) => setPreferences({ ...preferences, heightMaxCm: Math.max(parseInt(e.target.value), preferences.heightMinCm + 1) })}
+                  className="flex-1 h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
               </div>
             </div>
           </div>
 
-          <button
-            onClick={handleSubmit}
-            disabled={loading || !preferences.looking_for_gender || !preferences.looking_for_relationship_status}
-            className="w-full py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 disabled:cursor-not-allowed text-white font-semibold rounded-full transition-colors mt-8 mb-4"
-          >
-            {loading ? 'Saving...' : 'Continue'}
-          </button>
 
-          <p className="text-xs text-center text-gray-500">
-            By continuing, you agree to matchchayn{' '}
-            <span className="underline cursor-pointer">Terms of service</span> and{' '}
-            <span className="underline cursor-pointer">Privacy Policy</span>.
-          </p>
+          <div className="mt-8 flex gap-4">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="flex-1 py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-full transition-all active:scale-[0.98]"
+              >
+                Back
+              </button>
+            )}
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="flex-[2] py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white font-bold rounded-full transition-all active:scale-[0.98]"
+            >
+              {loading ? 'Processing...' : 'Continue'}
+            </button>
+          </div>
         </div>
       </div>
-
-      <style>{`
-        .slider-purple::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #a855f7;
-          cursor: pointer;
-        }
-        .slider-purple::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #a855f7;
-          cursor: pointer;
-          border: none;
-        }
-      `}</style>
     </div>
   )
 }

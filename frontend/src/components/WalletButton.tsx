@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom'
 export default function WalletButton() {
   const { wallets, select, connected, disconnect, publicKey, connecting } = useWallet()
   const [showModal, setShowModal] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
 
   const handleConnect = async (walletName: WalletName) => {
     try {
@@ -30,15 +31,44 @@ export default function WalletButton() {
 
   if (connected && publicKey) {
     return (
-      <button
-        onClick={handleDisconnect}
-        className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg transition-colors"
-      >
-        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-        <span className="text-white text-xs sm:text-sm font-medium">
-          {formatAddress(publicKey.toBase58())}
-        </span>
-      </button>
+      <div className="relative">
+        <button
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 rounded-full transition-colors"
+        >
+          <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+          <span className="text-white text-xs sm:text-sm font-medium">
+            {formatAddress(publicKey.toBase58())}
+          </span>
+          <svg className={`w-4 h-4 text-purple-300 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showDropdown && (
+          <div className="absolute right-0 top-full mt-2 w-48 bg-[#090a1e] border border-purple-500/20 rounded-xl overflow-hidden shadow-xl shadow-black/30 z-[100]">
+            <div className="px-4 py-3 text-left">
+              <p className="text-xs text-gray-400 font-medium">Connected to</p>
+              <p className="text-sm text-white font-mono mt-0.5 break-all">
+                {formatAddress(publicKey.toBase58())}
+              </p>
+            </div>
+            <div className="border-t border-purple-500/10" />
+            <button
+              onClick={() => {
+                handleDisconnect()
+                setShowDropdown(false)
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-500/10 transition-colors text-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Disconnect
+            </button>
+          </div>
+        )}
+      </div>
     )
   }
 
@@ -47,17 +77,9 @@ export default function WalletButton() {
       <button
         onClick={() => setShowModal(true)}
         disabled={connecting}
-        className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg transition-colors disabled:opacity-50"
+        className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-full transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
       >
-        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-        </svg>
-        <span className="hidden sm:inline text-white text-sm font-medium">
-          {connecting ? 'Connecting...' : 'Select Wallet'}
-        </span>
-        <span className="sm:hidden text-white text-xs font-medium">
-          {connecting ? 'Connecting...' : 'Wallet'}
-        </span>
+        {connecting ? 'Connecting...' : 'Connect wallet'}
       </button>
 
       {/* Wallet Selection Modal - Rendered as Portal */}
@@ -67,7 +89,7 @@ export default function WalletButton() {
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-[#1a1a2e] border border-purple-500/30 rounded-2xl p-6 max-w-md w-full max-h-[85vh] overflow-y-auto"
+            className="bg-[#1a1a2e] rounded-lg p-6 max-w-md w-full max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
@@ -87,7 +109,7 @@ export default function WalletButton() {
                 <button
                   key={wallet.adapter.name}
                   onClick={() => handleConnect(wallet.adapter.name)}
-                  className="w-full flex items-center gap-4 p-4 bg-[#0a0a1f]/50 hover:bg-purple-600/20 border border-purple-500/20 hover:border-purple-500/40 rounded-xl transition-all"
+                  className="w-full flex items-center gap-4 p-4 hover:bg-purple-600/10 rounded-xl transition-all"
                 >
                   <img
                     src={wallet.adapter.icon}
@@ -114,7 +136,7 @@ export default function WalletButton() {
                     <button
                       key={wallet.adapter.name}
                       onClick={() => window.open(wallet.adapter.url, '_blank')}
-                      className="w-full flex items-center gap-4 p-4 bg-[#0a0a1f]/30 hover:bg-purple-600/10 border border-purple-500/10 hover:border-purple-500/20 rounded-xl transition-all"
+                      className="w-full flex items-center gap-4 p-4 hover:bg-purple-600/5 rounded-xl transition-all"
                     >
                       <img
                         src={wallet.adapter.icon}

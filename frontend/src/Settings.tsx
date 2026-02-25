@@ -1,8 +1,7 @@
-import type { Session } from '@supabase/supabase-js'
 import ProfileSettings from './components/ProfileSettings'
 
 interface SettingsProps {
-  session: Session
+  session: any
 }
 
 export default function Settings({ session }: SettingsProps) {

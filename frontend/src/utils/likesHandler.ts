@@ -1,59 +1,29 @@
-import { supabase } from '../client'
-
+import { API_BASE_URL } from '../config';
 /**
- * Handle liking a profile
- * Creates a record in user_likes table to track who liked whom
+ * Handle liking a profile using MongoDB backend
  */
 export async function likeProfile(
-  currentUserId: string,
+  token: string,
   likedUserId: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; isMatch?: boolean; error?: string }> {
   try {
-    // Check if already liked
-    const { data: existing } = await supabase
-      .from('user_likes')
-      .select('id')
-      .eq('user_id', currentUserId)
-      .eq('liked_user_id', likedUserId)
-      .maybeSingle()
+    const response = await fetch(`${API_BASE_URL}/api/user/like`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ targetUserId: likedUserId })
+    });
 
-    if (existing) {
-      return { success: false, error: 'Already liked this profile' }
-    }
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to like profile');
 
-    // Insert like record
-    const { error } = await supabase
-      .from('user_likes')
-      .insert({
-        user_id: currentUserId,
-        liked_user_id: likedUserId,
-        created_at: new Date().toISOString()
-      })
-
-    if (error) throw error
-
-    // Check if it's a match (both users liked each other)
-    const { data: mutualLike } = await supabase
-      .from('user_likes')
-      .select('id')
-      .eq('user_id', likedUserId)
-      .eq('liked_user_id', currentUserId)
-      .maybeSingle()
-
-    if (mutualLike) {
-      // Create a match record
-      await supabase
-        .from('matches')
-        .insert({
-          user1_id: currentUserId,
-          user2_id: likedUserId,
-          created_at: new Date().toISOString()
-        })
-
-      return { success: true, error: "It's a match!" }
-    }
-
-    return { success: true }
+    return {
+      success: true,
+      isMatch: data.isMatch,
+      error: data.isMatch ? "It's a match!" : undefined
+    };
   } catch (error: any) {
     console.error('Error liking profile:', error)
     return { success: false, error: error.message }
@@ -61,81 +31,42 @@ export async function likeProfile(
 }
 
 /**
- * Fetch all profiles that the current user has liked
+ * Fetch all profiles that liked the current user (Received Likes)
  */
-export async function fetchLikedProfiles(currentUserId: string) {
+export async function fetchLikes(token: string) {
   try {
-    const { data: likes, error } = await supabase
-      .from('user_likes')
-      .select('liked_user_id')
-      .eq('user_id', currentUserId)
+    const response = await fetch(`${API_BASE_URL}/api/user/likes`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Failed to fetch likes');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching likes:', error)
+    return []
+  }
+}
 
-    if (error) throw error
+/**
+ * Fetch all profiles that the current user has liked (Outgoing Likes)
+ */
+export async function fetchLikedProfiles(token: string) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/user/liked-profiles`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Failed to fetch liked profiles');
+    const data = await response.json();
 
-    if (!likes || likes.length === 0) {
-      return []
-    }
-
-    const likedUserIds = likes.map(like => like.liked_user_id)
-
-    // Fetch profile details for all liked users
-    const { data: profiles } = await supabase
-      .from('Profile')
-      .select('id, first_name, last_name, bio, city, country, gender, dateofbirth, relationshipstatus')
-      .in('id', likedUserIds)
-
-    if (!profiles) return []
-
-    // Fetch media and interests for each profile
-    const profilesWithData = await Promise.all(
-      profiles.map(async (profile) => {
-        // Get first photo or video
-        const { data: media } = await supabase
-          .from('user_media')
-          .select('media_url, media_type')
-          .eq('user_id', profile.id)
-          .order('display_order', { ascending: true })
-          .limit(1)
-          .single()
-
-        let photoUrl = null
-        let mediaType = null
-        if (media?.media_url) {
-          const { data: { publicUrl } } = supabase.storage
-            .from('user-videos')
-            .getPublicUrl(media.media_url)
-          photoUrl = publicUrl
-          mediaType = media.media_type
-        }
-
-        // Get interests
-        const { data: userInterests } = await supabase
-          .from('user_interests')
-          .select('interest_id, interests(name)')
-          .eq('user_id', profile.id)
-          .limit(2)
-
-        const interests = userInterests?.map((ui: any) => ui.interests.name) || []
-
-        return {
-          id: profile.id,
-          first_name: profile.first_name || 'Unknown',
-          last_name: profile.last_name || '',
-          bio: profile.bio || '',
-          city: profile.city || 'Unknown',
-          country: profile.country || '',
-          gender: profile.gender || '',
-          dateofbirth: profile.dateofbirth || '',
-          relationshipstatus: profile.relationshipstatus || '',
-          photoUrl,
-          mediaType,
-          distance: Math.floor(Math.random() * 100) + 1,
-          interests
-        }
-      })
-    )
-
-    return profilesWithData
+    // Map backend fields to the common UserProfile format
+    return data.map((user: any) => ({
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      avatarUrl: user.avatarUrl,
+      bio: user.bio,
+      gender: user.gender,
+      city: user.city || 'Unknown'
+    }));
   } catch (error) {
     console.error('Error fetching liked profiles:', error)
     return []
@@ -143,24 +74,17 @@ export async function fetchLikedProfiles(currentUserId: string) {
 }
 
 /**
- * Unlike a profile
+ * Fetch all verified matches
  */
-export async function unlikeProfile(
-  currentUserId: string,
-  likedUserId: string
-): Promise<{ success: boolean; error?: string }> {
+export async function fetchMatches(token: string) {
   try {
-    const { error } = await supabase
-      .from('user_likes')
-      .delete()
-      .eq('user_id', currentUserId)
-      .eq('liked_user_id', likedUserId)
-
-    if (error) throw error
-
-    return { success: true }
-  } catch (error: any) {
-    console.error('Error unliking profile:', error)
-    return { success: false, error: error.message }
+    const response = await fetch(`${API_BASE_URL}/api/user/matches`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Failed to fetch matches');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching matches:', error)
+    return []
   }
 }
