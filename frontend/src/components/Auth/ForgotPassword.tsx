@@ -8,7 +8,7 @@ type ForgotPasswordStep = 'email' | 'otp' | 'password' | 'success'
 export default function ForgotPassword() {
   const [step, setStep] = useState<ForgotPasswordStep>('email')
   const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState(['', '', '', ''])
+  const [otp, setOtp] = useState(['', ''])
   const [newPassword, setNewPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -87,18 +87,18 @@ export default function ForgotPassword() {
     const newOtp = [...otp]
     newOtp[index] = value
     setOtp(newOtp)
-    if (value && index < 3) {
+    if (value && index < 1) {
       document.getElementById(`otp-${index + 1}`)?.focus()
     }
   }
 
   const handleOtpVerify = (e: React.FormEvent) => {
     e.preventDefault()
-    if (otp.join('').length === 4) {
+    if (otp.join('').length === 2) {
       setStep('password')
       setMessage('')
     } else {
-      setMessage('Please enter all 4 digits')
+      setMessage('Please enter all 2 digits')
     }
   }
 
@@ -146,9 +146,7 @@ export default function ForgotPassword() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-6">
-            <svg className="w-8 h-8 text-purple-500" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
+            <img src="/favicon.png" alt="Matchchayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
             <h1 className="text-2xl font-bold text-white uppercase tracking-wider">Matchchayn</h1>
           </div>
 
@@ -188,7 +186,7 @@ export default function ForgotPassword() {
             <form onSubmit={handleOtpVerify} className="space-y-6">
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-white mb-2">Verify Code</h2>
-                <p className="text-sm text-gray-400">Enter the 4-digit code sent to {email}</p>
+                <p className="text-sm text-gray-400">Enter the 2-digit code sent to {email}</p>
               </div>
               <div className="flex justify-center gap-2">
                 {otp.map((digit, index) => (

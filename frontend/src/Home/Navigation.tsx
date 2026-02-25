@@ -16,55 +16,51 @@ export default function Navigation() {
     <nav className="sticky top-24 space-y-2">
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-3 mb-6">
-        <svg className="w-6 h-6 text-purple-500" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-        </svg>
+        <img src="/favicon.png" alt="Matchchayn" className="w-6 h-6 object-contain" />
         <span className="text-white font-bold text-lg">MatchChayn</span>
       </div>
 
       {/* Navigation Items */}
       <button
         onClick={() => navigate('/')}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${
-          isActive('/') ? 'text-purple-400' : 'text-white/60 hover:text-white'
-        }`}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${isActive('/') ? 'text-purple-400' : 'text-white/60 hover:text-white'
+          }`}
       >
         {isActive('/') && (
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-purple-500 rounded-r-full"></div>
         )}
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
         </svg>
         <span className="font-medium text-sm">Match</span>
       </button>
 
       <button
         onClick={() => navigate('/likes')}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${
-          isActive('/likes') ? 'text-purple-400' : 'text-white/60 hover:text-white'
-        }`}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${isActive('/likes') ? 'text-purple-400' : 'text-white/60 hover:text-white'
+          }`}
       >
         {isActive('/likes') && (
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-purple-500 rounded-r-full"></div>
         )}
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
         </svg>
         <span className="font-medium text-sm">Likes</span>
       </button>
 
       <button
-        onClick={() => {}}
+        onClick={() => { }}
         className="w-full flex items-center gap-3 px-4 py-3 text-white/60 rounded-lg hover:text-white transition-all"
       >
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
         </svg>
         <span className="font-medium text-sm">Messages</span>
       </button>
 
       <button
-        onClick={() => {}}
+        onClick={() => { }}
         className="w-full flex items-center gap-3 px-4 py-3 text-white/60 rounded-lg hover:text-white transition-all"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,15 +71,14 @@ export default function Navigation() {
 
       <button
         onClick={() => navigate('/settings')}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${
-          isActive('/settings') ? 'text-purple-400' : 'text-white/60 hover:text-white'
-        }`}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${isActive('/settings') ? 'text-purple-400' : 'text-white/60 hover:text-white'
+          }`}
       >
         {isActive('/settings') && (
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-purple-500 rounded-r-full"></div>
         )}
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
         </svg>
         <span className="font-medium text-sm">Profiles</span>
       </button>
@@ -91,7 +86,7 @@ export default function Navigation() {
       {/* Divider */}
       <div className="pt-4 mt-4 space-y-2">
         <button
-          onClick={() => {}}
+          onClick={() => { }}
           className="w-full flex items-center gap-3 px-4 py-3 text-white/60 rounded-lg hover:text-white transition-all"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

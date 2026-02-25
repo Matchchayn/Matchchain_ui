@@ -18,7 +18,7 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
   const { showAlert } = useAlert()
   const [step, setStep] = useState<SignupStep>('email')
   const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState(['', '', '', ''])
+  const [otp, setOtp] = useState(['', ''])
   const [password, setPassword] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -60,7 +60,7 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
     if (onSignupSuccess) {
       onSignupSuccess()
     } else {
-      window.location.reload()
+      window.location.href = '/'
     }
   }
 
@@ -99,7 +99,7 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
     setOtp(newOtp)
 
     // Auto-focus next input
-    if (value && index < 3) {
+    if (value && index < 1) {
       const nextInput = document.getElementById(`otp-${index + 1}`)
       nextInput?.focus()
     }
@@ -109,8 +109,8 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
     e.preventDefault()
     const otpCode = otp.join('')
 
-    if (otpCode.length !== 4) {
-      showAlert('Please enter all 4 digits', 'warning')
+    if (otpCode.length !== 2) {
+      showAlert('Please enter all 2 digits', 'warning')
       return
     }
 
@@ -204,10 +204,8 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6">
-            <svg className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">MATCHCHAYN</h1>
+            <img src="/favicon.png" alt="Matchchayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-wider">MATCHCHAYN</h1>
           </div>
 
           <div className="text-center mb-6">
@@ -290,7 +288,7 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
             <form onSubmit={handleOtpVerify} className="space-y-6">
               <div className="text-center">
                 <h3 className="text-2xl font-bold text-white mb-2">Verify Email</h3>
-                <p className="text-sm text-gray-400">Sent a 4-digit code to {email}</p>
+                <p className="text-sm text-gray-400">Sent a 2-digit code to {email}</p>
               </div>
 
               <div className="flex justify-center gap-2">
@@ -310,7 +308,7 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
 
               <button
                 type="submit"
-                disabled={isLoading || otp.join('').length !== 4}
+                disabled={isLoading || otp.join('').length !== 2}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full transition-colors"
               >
                 {isLoading ? 'Verifying...' : 'Verify OTP'}

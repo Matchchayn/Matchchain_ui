@@ -97,6 +97,7 @@ export default function App() {
   const refreshSession = () => {
     const token = localStorage.getItem('token')
     const user = localStorage.getItem('user')
+    setIsOnboardingChecked(false); // Reset check status to avoid glimpses
 
     if (token && user) {
       try {
@@ -147,6 +148,7 @@ export default function App() {
         }
 
         // If no status or incomplete, wait for server check before showing anything
+        setOnboardingStep(1); // Default to first step if unsure
         checkUserOnboarding(uid)
       } catch (e) {
         console.error("Session refresh error:", e)
