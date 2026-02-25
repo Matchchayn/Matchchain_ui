@@ -8,7 +8,7 @@ type ForgotPasswordStep = 'email' | 'otp' | 'password' | 'success'
 export default function ForgotPassword() {
   const [step, setStep] = useState<ForgotPasswordStep>('email')
   const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState(['', ''])
+  const [otp, setOtp] = useState(['', '', '', ''])
   const [newPassword, setNewPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -87,18 +87,18 @@ export default function ForgotPassword() {
     const newOtp = [...otp]
     newOtp[index] = value
     setOtp(newOtp)
-    if (value && index < 1) {
+    if (value && index < 3) {
       document.getElementById(`otp-${index + 1}`)?.focus()
     }
   }
 
   const handleOtpVerify = (e: React.FormEvent) => {
     e.preventDefault()
-    if (otp.join('').length === 2) {
+    if (otp.join('').length === 4) {
       setStep('password')
       setMessage('')
     } else {
-      setMessage('Please enter all 2 digits')
+      setMessage('Please enter all 4 digits')
     }
   }
 
@@ -186,7 +186,7 @@ export default function ForgotPassword() {
             <form onSubmit={handleOtpVerify} className="space-y-6">
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-white mb-2">Verify Code</h2>
-                <p className="text-sm text-gray-400">Enter the 2-digit code sent to {email}</p>
+                <p className="text-sm text-gray-400">Enter the 4-digit code sent to {email}</p>
               </div>
               <div className="flex justify-center gap-2">
                 {otp.map((digit, index) => (

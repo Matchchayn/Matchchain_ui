@@ -18,7 +18,7 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
   const { showAlert } = useAlert()
   const [step, setStep] = useState<SignupStep>('email')
   const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState(['', ''])
+  const [otp, setOtp] = useState(['', '', '', ''])
   const [password, setPassword] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -99,7 +99,7 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
     setOtp(newOtp)
 
     // Auto-focus next input
-    if (value && index < 1) {
+    if (value && index < 3) {
       const nextInput = document.getElementById(`otp-${index + 1}`)
       nextInput?.focus()
     }
@@ -109,8 +109,8 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
     e.preventDefault()
     const otpCode = otp.join('')
 
-    if (otpCode.length !== 2) {
-      showAlert('Please enter all 2 digits', 'warning')
+    if (otpCode.length !== 4) {
+      showAlert('Please enter all 4 digits', 'warning')
       return
     }
 
@@ -288,7 +288,7 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
             <form onSubmit={handleOtpVerify} className="space-y-6">
               <div className="text-center">
                 <h3 className="text-2xl font-bold text-white mb-2">Verify Email</h3>
-                <p className="text-sm text-gray-400">Sent a 2-digit code to {email}</p>
+                <p className="text-sm text-gray-400">Sent a 4-digit code to {email}</p>
               </div>
 
               <div className="flex justify-center gap-2">
@@ -308,7 +308,7 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
 
               <button
                 type="submit"
-                disabled={isLoading || otp.join('').length !== 2}
+                disabled={isLoading || otp.join('').length !== 4}
                 className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-full transition-colors"
               >
                 {isLoading ? 'Verifying...' : 'Verify OTP'}
