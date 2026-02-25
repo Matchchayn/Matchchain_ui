@@ -8,4 +8,4 @@ export const IS_LOCAL = import.meta.env.DEV; // Dynamically switches!
 // The app will automatically use the correct URL based on your switch above!
 export const API_BASE_URL = IS_LOCAL
     ? 'http://localhost:5000'
-    : 'https://matchchayn-backend.onrender.com';
+    : 'https://backend-production-8218.up.railway.app';
