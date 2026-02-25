@@ -6,6 +6,7 @@ import TopLoader from './Common/TopLoader'
 import { fetchLikes, fetchMatches, likeProfile } from '../utils/likesHandler'
 import MobileBottomNav from './MobileBottomNav'
 import { useAlert } from '../hooks/useAlert'
+import Stories from '../Home/Stories'
 
 interface Match {
   id: string
@@ -143,6 +144,11 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
       <Header userId={session.user.id || session.user._id} />
 
       <div className="min-h-screen bg-[#090a1e] pt-16 pb-28 lg:pb-8 lg:pl-64">
+        {/* Stories section - below header */}
+        <div className="w-full bg-[#090a1e]/50 backdrop-blur-md border-b border-white/5">
+          <Stories layout="mobile" />
+        </div>
+
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">

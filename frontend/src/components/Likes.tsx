@@ -55,8 +55,8 @@ export default function Likes({ session }: LikesProps) {
       <div className="min-h-screen bg-[#0a0a1f] pt-16 pb-28 lg:pb-8 lg:pl-64">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
 
-          {/* Stories integrated for continuity */}
-          <div className="mb-8">
+          {/* Stories section - below header */}
+          <div className="w-full bg-[#090a1e]/50 backdrop-blur-md border-b border-white/5 mb-8">
             <Stories layout="mobile" />
           </div>
 
