@@ -154,7 +154,7 @@ export default function Stories({ layout = 'mobile' }: StoriesProps) {
                   <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white font-black text-xs">
-                    {user.firstName.charAt(0)}
+                    {user.firstName?.charAt(0) || '?'}
                   </div>
                 )}
               </div>
@@ -253,7 +253,7 @@ function StatusViewer({ statuses, onClose }: { statuses: Status[], onClose: () =
               <img src={currentStatus.user.avatarUrl} className="w-full h-full object-cover" alt="" />
             ) : (
               <div className="w-full h-full bg-purple-600 flex items-center justify-center text-white font-black">
-                {currentStatus.user.firstName.charAt(0)}
+                {currentStatus.user?.firstName?.charAt(0) || '?'}
               </div>
             )}
           </div>

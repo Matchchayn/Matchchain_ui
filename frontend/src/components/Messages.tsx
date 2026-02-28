@@ -175,7 +175,7 @@ export default function Messages({ session }: MessagesProps) {
                         />
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
-                          {convo.other_user.first_name.charAt(0)}
+                          {convo.other_user?.first_name?.charAt(0) || '?'}
                         </div>
                       )}
                       {convo.other_user.is_online && (

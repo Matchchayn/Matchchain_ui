@@ -115,7 +115,7 @@ export default function NotificationModal({ isOpen, onClose, token }: Notificati
                                             <img src={notif.sender.avatarUrl} alt="" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full bg-purple-600 flex items-center justify-center text-white font-bold text-sm">
-                                                {notif.sender.firstName.charAt(0)}
+                                                {notif.sender?.firstName?.charAt(0) || '?'}
                                             </div>
                                         )}
                                     </div>

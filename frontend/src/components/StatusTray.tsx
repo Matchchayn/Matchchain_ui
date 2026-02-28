@@ -142,7 +142,7 @@ export default function StatusTray() {
                                 <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full bg-purple-600 flex items-center justify-center text-white font-bold text-xl">
-                                    {user.firstName.charAt(0)}
+                                    {user.firstName?.charAt(0) || '?'}
                                 </div>
                             )}
                         </div>
