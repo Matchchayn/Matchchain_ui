@@ -161,7 +161,7 @@ export default function InterestSelection({ session, onComplete, onBack }: Inter
 
           <p className="text-[10px] text-center text-gray-600 uppercase tracking-widest leading-loose">
             By continuing, you agree to Matchchayn<br />
-            <span className="text-gray-400 hover:text-purple-400 cursor-pointer">Terms of service</span> & <span className="text-gray-400 hover:text-purple-400 cursor-pointer">Privacy Policy</span>
+            <span className="text-gray-400 hover:text-purple-400 cursor-pointer">Terms of service</span> & <a href="/privacy-policy" target="_blank" className="text-gray-400 hover:text-purple-400 cursor-pointer">Privacy Policy</a>
           </p>
         </div>
       </div>

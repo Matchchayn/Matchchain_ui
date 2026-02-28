@@ -25,6 +25,7 @@ import TopLoader from './components/Common/TopLoader'
 import ConnectivityStatus from './components/Common/ConnectivityStatus'
 import IncomingCallModal from './components/Call/IncomingCallModal'
 import CallScreen from './components/Call/CallScreen'
+import PrivacyPolicy from './components/PrivacyPolicy'
 import { socketService } from './utils/socketService'
 
 import { GoogleOAuthProvider } from '@react-oauth/google'
@@ -345,6 +346,7 @@ export default function App() {
             <Route path="/signup" element={<Signup onSignupSuccess={refreshSession} />} />
             <Route path="/login" element={<Login onLoginSuccess={refreshSession} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Router>
@@ -413,6 +415,7 @@ export default function App() {
               <Route path="/events/create" element={<CreateEvent session={session} />} />
               <Route path="/events/edit/:id" element={<CreateEvent session={session} />} />
               <Route path="/settings" element={<Settings session={session} />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route
                 path="/video-call/:sessionId"
                 element={
