@@ -24,15 +24,13 @@ export default function MobileBottomNav() {
                         className={`flex flex-col items-center gap-1 p-2 ${isActive(item.path) ? 'text-purple-400' : 'text-white/60'}`}
                     >
                         {item.label === 'Match' ? (
-                            <img src="/matchlogo.png" alt="Match" className="w-8 h-8 object-contain" />
+                            <img src="/matchlogo.png" alt="Match" className="w-6 h-6 object-contain" />
                         ) : (
-                            <>
-                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                                    {item.icon}
-                                </svg>
-                                <span className="text-[10px] font-medium">{item.label}</span>
-                            </>
+                            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                {item.icon}
+                            </svg>
                         )}
+                        <span className="text-[10px] font-medium">{item.label}</span>
                     </button>
                 ))}
             </div>

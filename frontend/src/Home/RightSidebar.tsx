@@ -26,6 +26,7 @@ export default function RightSidebar({ session, mobileView = false }: RightSideb
   const [matchCount, setMatchCount] = useState(0)
   const [likeCount, setLikeCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (session?.token) {
@@ -66,7 +67,7 @@ export default function RightSidebar({ session, mobileView = false }: RightSideb
         id: user._id,
         name: `${user.firstName || 'User'} ${user.lastName || ''}`,
         avatar: user.avatarUrl || '',
-        message: 'Sent a Match request',
+        message: 'SENT A MATCH REQUEST',
         time: 'Just now'
       }));
 
@@ -94,6 +95,52 @@ export default function RightSidebar({ session, mobileView = false }: RightSideb
     }
   }
 
+  const handleAccept = async (e: React.MouseEvent, userId: string) => {
+    e.stopPropagation()
+    const token = session.token
+    if (!token) return
+
+    try {
+      setProcessingId(userId)
+      const { likeProfile } = await import('../utils/likesHandler')
+      const result = await likeProfile(token, userId)
+      if (result.success) {
+        await loadData(true)
+      }
+    } catch (error) {
+      console.error('Error accepting match:', error)
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleReject = async (e: React.MouseEvent, userId: string) => {
+    e.stopPropagation()
+    const token = session.token
+    if (!token) return
+
+    try {
+      setProcessingId(userId)
+      const { API_BASE_URL } = await import('../config')
+      const response = await fetch(`${API_BASE_URL}/api/user/reject-like`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ targetUserId: userId })
+      })
+
+      if (response.ok) {
+        await loadData(true)
+      }
+    } catch (error) {
+      console.error('Error rejecting match:', error)
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
   return (
     <div className="sticky top-24 space-y-4">
       <Stories layout={mobileView ? 'mobile' : 'sidebar'} />
@@ -101,8 +148,9 @@ export default function RightSidebar({ session, mobileView = false }: RightSideb
       {/* Promotional Banner */}
       <div className="bg-gradient-to-br from-purple-600 to-pink-500 rounded-xl p-4 relative overflow-hidden group shadow-lg">
         <div className="relative z-10">
-          <h3 className="text-white text-sm font-bold mb-1.5 tracking-wider">
+          <h3 className="text-white text-sm font-bold mb-1.5 tracking-wider flex items-center gap-2">
             Matchchain VIP
+            <span className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded-full font-black uppercase">Soon</span>
           </h3>
           <p className="text-white/90 text-xs mb-3 leading-snug font-medium">
             Boost your frequency and get seen by 10x more people on the edge.
@@ -111,10 +159,12 @@ export default function RightSidebar({ session, mobileView = false }: RightSideb
             Level Up
           </button>
         </div>
-        <div className="absolute bottom-0 right-0 opacity-10 group-hover:scale-110 transition-transform">
-          <svg className="w-24 h-24 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-          </svg>
+        <div className="absolute bottom-0 right-0 opacity-10 group-hover:scale-110 transition-transform p-4">
+          <img
+            src="/matchlogo.png"
+            alt=""
+            className="w-20 h-20 object-contain brightness-0 invert"
+          />
         </div>
       </div>
 
@@ -162,15 +212,24 @@ export default function RightSidebar({ session, mobileView = false }: RightSideb
           {/* Match/Likes List */}
           <div className="p-2 space-y-1 max-h-[440px] overflow-y-auto custom-scrollbar">
             {loading ? (
-              <div className="text-center py-12">
-                <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                <p className="text-white/20 text-[10px] tracking-widest font-mono">Syncing Nodes...</p>
+              <div className="space-y-3 p-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 animate-pulse">
+                    <div className="w-12 h-12 rounded-full bg-white/10 flex-shrink-0"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-white/10 rounded w-2/3"></div>
+                      <div className="h-3 bg-white/5 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (activeTab === 'matches' ? matches : likes).length === 0 ? (
               <div className="text-center py-12">
-                <svg className="w-10 h-10 text-white/5 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
+                <img
+                  src="/matchlogo.png"
+                  alt=""
+                  className="w-10 h-10 object-contain opacity-5 mx-auto mb-3"
+                />
                 <p className="text-white/20 text-[10px] tracking-widest font-mono">
                   No signals found
                 </p>
@@ -201,10 +260,32 @@ export default function RightSidebar({ session, mobileView = false }: RightSideb
                       {item.name}
                     </h4>
                     <p className="text-white/40 text-[10px] tracking-tighter truncate">{item.message}</p>
+
+                    {/* Quick Actions for Received Tab */}
+                    {activeTab === 'likes' && (
+                      <div className="flex gap-1.5 mt-2">
+                        <button
+                          onClick={(e) => handleAccept(e, item.id)}
+                          disabled={processingId === item.id}
+                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-[9px] font-black uppercase tracking-tighter py-1 rounded-md text-white transition-all disabled:opacity-50"
+                        >
+                          {processingId === item.id ? '...' : 'Accept'}
+                        </button>
+                        <button
+                          onClick={(e) => handleReject(e, item.id)}
+                          disabled={processingId === item.id}
+                          className="bg-red-500/10 hover:bg-red-500/20 text-red-500 p-1 rounded-md border border-red-500/20 disabled:opacity-50"
+                        >
+                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <span className="text-white/20 text-[9px] font-mono">{item.time}</span>
-                    <div className="w-2 h-2 rounded-full bg-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+                    <div className={`w-2 h-2 rounded-full ${item.avatar ? 'bg-purple-500/50 shadow-[0_0_8px_rgba(168,85,247,0.5)]' : 'bg-gray-500'}`}></div>
                   </div>
                 </div>
               ))

@@ -23,5 +23,24 @@ export function useAlert() {
     })
   }
 
-  return { showAlert, alert: null, closeAlert: () => { } }
+  const showConfirm = async (title: string, text: string = '', confirmButtonText: string = 'Yes', cancelButtonText: string = 'Cancel') => {
+    return Swal.fire({
+      title: title,
+      text: text,
+      icon: 'warning',
+      background: '#1a1a2e',
+      color: '#fff',
+      showCancelButton: true,
+      confirmButtonColor: '#8b5cf6',
+      cancelButtonColor: '#303030',
+      confirmButtonText: confirmButtonText,
+      cancelButtonText: cancelButtonText,
+      reverseButtons: true,
+      customClass: {
+        popup: 'rounded-2xl border border-purple-500/20'
+      }
+    }).then((result) => result.isConfirmed)
+  }
+
+  return { showAlert, showConfirm, alert: null, closeAlert: () => { } }
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../Home/Header'
 import Sidebar from './Sidebar'
-import TopLoader from './Common/TopLoader'
+import { API_BASE_URL } from '../config'
 import { fetchLikes, fetchMatches, likeProfile } from '../utils/likesHandler'
 import MobileBottomNav from './MobileBottomNav'
 import { useAlert } from '../hooks/useAlert'
@@ -110,13 +110,40 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
       const result = await likeProfile(token, userId)
       if (result.success) {
         showAlert('Match request accepted!', 'success')
-        // Refresh data to show the new match
         await loadData()
       } else {
         showAlert(result.error || 'Failed to accept match', 'error')
       }
     } catch (error) {
       console.error('Error accepting match:', error)
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleRejectMatch = async (userId: string) => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    try {
+      setProcessingId(userId)
+      const response = await fetch(`${API_BASE_URL}/api/user/reject-like`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ targetUserId: userId })
+      })
+
+      if (response.ok) {
+        showAlert('Match request declined', 'info')
+        await loadData()
+      } else {
+        showAlert('Failed to decline match', 'error')
+      }
+    } catch (error) {
+      console.error('Error rejecting match:', error)
     } finally {
       setProcessingId(null)
     }
@@ -132,8 +159,23 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
       <>
         <Sidebar />
         <Header userId={session.user.id || session.user._id} />
-        <TopLoader message="Loading..." />
-        <div className="min-h-screen bg-[#090a1e] pt-16 lg:pl-64" />
+        <div className="min-h-screen bg-[#090a1e] pt-24 pb-28 lg:pb-8 lg:pl-64">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="h-10 bg-white/5 rounded-lg w-48 mb-6 animate-pulse" />
+            <div className="h-14 bg-white/5 rounded-xl mb-8 animate-pulse" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="bg-[#1a1a2e]/50 rounded-2xl p-4 border border-white/5 h-32 animate-pulse flex gap-4">
+                  <div className="w-20 h-20 rounded-2xl bg-white/10 flex-shrink-0" />
+                  <div className="flex-1 space-y-3 mt-2">
+                    <div className="h-5 bg-white/10 rounded w-1/3" />
+                    <div className="h-4 bg-white/5 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </>
     )
   }
@@ -205,10 +247,12 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
           {/* Content */}
           {(activeTab === 'matches' ? matches : receivedLikes).length === 0 ? (
             <div className="text-center py-12 sm:py-20 px-4">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <svg className="w-10 h-10 sm:w-12 sm:h-12 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 p-5">
+                <img
+                  src="/matchlogo.png"
+                  alt=""
+                  className="w-full h-full object-contain opacity-20"
+                />
               </div>
               <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
                 {activeTab === 'matches' ? 'No matches yet' : 'No requests yet'}
@@ -226,73 +270,94 @@ export default function MatchesLikes({ session }: MatchesLikesProps) {
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {(activeTab === 'matches' ? matches : receivedLikes).map((item) => (
                 <div
                   key={item.id}
-                  className="bg-[#1a1a2e]/50 rounded-xl p-4 border border-purple-500/10 hover:border-purple-500/30 transition-all group"
+                  className="bg-[#1a1a2e]/50 rounded-2xl p-4 border border-purple-500/10 hover:border-purple-500/30 transition-all group relative overflow-hidden"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-purple-500/30">
+                  <div className="flex gap-4">
+                    {/* Avatar with Status */}
+                    <div className="relative flex-shrink-0">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden ring-2 ring-purple-500/20">
                         {item.avatar ? (
-                          <img
-                            src={item.avatar}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={item.avatar} alt={item.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full bg-purple-600/20 flex items-center justify-center">
-                            <svg className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
+                            <span className="text-2xl font-bold text-purple-400">{item.name[0]}</span>
                           </div>
                         )}
-                        <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1a1a2e] ${item.is_online ? 'bg-green-500' : 'bg-gray-500'}`} />
                       </div>
+                      <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-[#1a1a2e] ${item.is_online ? 'bg-green-500' : 'bg-gray-500 shadow-inner'}`} />
                       {activeTab === 'received' && (
-                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-purple-500 rounded-full border-2 border-[#1a1a2e] flex items-center justify-center shadow-lg">
-                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                          </svg>
+                        <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-purple-600 rounded-full border-2 border-[#1a1a2e] flex items-center justify-center shadow-xl">
+                          <img src="/matchlogo.png" alt="" className="w-3.5 h-3.5 object-contain brightness-0 invert" />
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <h4 className="text-white font-bold text-base sm:text-lg truncate group-hover:text-purple-400 transition-colors">
-                          {item.name}
-                        </h4>
-                        <span className="text-white/30 text-[10px] sm:text-xs">Just now</span>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-white font-bold text-lg truncate group-hover:text-purple-400 transition-colors">
+                            {item.name}
+                          </h4>
+                          <span className="text-white/30 text-[10px] uppercase font-bold tracking-tighter whitespace-nowrap">
+                            {item.time}
+                          </span>
+                        </div>
+                        <p className="text-white/50 text-xs sm:text-sm font-medium uppercase tracking-widest mt-0.5">
+                          {item.message}
+                        </p>
                       </div>
-                      <p className="text-white/50 text-xs sm:text-sm truncate uppercase tracking-tight">{item.message}</p>
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      {activeTab === 'matches' ? (
-                        <button
-                          onClick={() => handleMessage(item.id)}
-                          className="bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm px-4 py-2 rounded-full font-bold transition-all shadow-lg shadow-purple-900/20 active:scale-95 flex items-center gap-2"
-                        >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
-                          </svg>
-                          <span className="hidden sm:inline">Message</span>
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleAcceptMatch(item.id)}
-                          disabled={processingId === item.id}
-                          className={`bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs sm:text-sm px-6 py-2 rounded-full font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {processingId === item.id ? '...' : 'Accept'}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => navigate(`/profile/${item.id}`)}
-                        className="bg-white/5 hover:bg-white/10 text-white/70 text-xs px-3 py-2 rounded-full font-medium transition-colors border border-white/5"
-                      >
-                        View
-                      </button>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 mt-3">
+                        {activeTab === 'matches' ? (
+                          <>
+                            <button
+                              onClick={() => handleMessage(item.id)}
+                              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-bold py-2.5 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
+                              </svg>
+                              Chat Now
+                            </button>
+                            <button
+                              onClick={() => navigate(`/profile/${item.id}`)}
+                              className="p-2.5 bg-white/5 hover:bg-white/10 text-white/70 rounded-xl transition-colors border border-white/5"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleAcceptMatch(item.id)}
+                              disabled={processingId === item.id}
+                              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs sm:text-sm font-black uppercase tracking-widest py-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                              {processingId === item.id ? (
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              ) : 'Accept'}
+                            </button>
+                            <button
+                              onClick={() => handleRejectMatch(item.id)}
+                              disabled={processingId === item.id}
+                              className="p-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl transition-colors border border-red-500/20 active:scale-95 group/btn"
+                            >
+                              <svg className="w-5 h-5 group-hover/btn:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

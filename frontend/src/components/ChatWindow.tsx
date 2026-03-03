@@ -47,7 +47,7 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
   const [callType, setCallType] = useState<'phone' | 'video'>('phone')
   const [isCallMenuOpen, setIsCallMenuOpen] = useState(false)
   const callMenuRef = useRef<HTMLDivElement>(null)
-  const { showAlert } = useAlert()
+  const { showAlert, showConfirm } = useAlert()
 
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
@@ -78,6 +78,34 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
           setOtherUser((prev: any) => ({ ...prev, is_online: data.isOnline }))
         }
       })
+
+      socket.on('receive_message', (data: any) => {
+        // Only add if it belongs to this conversation
+        if (data.sender === initialOtherUser.id || data.receiver === initialOtherUser.id) {
+          const newMessage: Message = {
+            id: data._id,
+            content: data.content,
+            sender_id: data.sender,
+            is_read: data.isRead,
+            created_at: data.createdAt,
+            message_type: data.messageType,
+            isUploading: false
+          }
+
+          setMessages(prev => {
+            // Prevent duplicates
+            if (prev.some(m => m.id === newMessage.id)) return prev
+            const updated = [...prev, newMessage]
+            localStorage.setItem(`msgs_${conversationId}`, JSON.stringify(updated))
+            return updated
+          })
+
+          // Mark as read if it's from the other user
+          if (data.sender === initialOtherUser.id) {
+            markAsRead()
+          }
+        }
+      })
     }
 
     const handleClickOutside = (event: MouseEvent) => {
@@ -92,16 +120,15 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
 
     const hasCache = !!localStorage.getItem(`msgs_${conversationId}`)
     fetchMessages(!hasCache)
-    const interval = setInterval(() => fetchMessages(false), 3000)
 
     return () => {
-      clearInterval(interval)
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
       document.removeEventListener('mousedown', handleClickOutside)
       if (socket) {
         socket.off('user_typing')
         socket.off('user_stop_typing')
         socket.off('status_change')
+        socket.off('receive_message')
       }
     }
   }, [conversationId, initialOtherUser.id, currentUserId])
@@ -135,6 +162,13 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
 
       setMessages(prev => {
         if (JSON.stringify(prev) === JSON.stringify(formattedMessages)) return prev
+
+        // Mark as read if there are new unread messages from the other user
+        const hasUnread = formattedMessages.some(m => m.sender_id !== currentUserId && !m.is_read)
+        if (hasUnread) {
+          markAsRead()
+        }
+
         // Save to cache
         localStorage.setItem(`msgs_${conversationId}`, JSON.stringify(formattedMessages))
         return formattedMessages
@@ -143,6 +177,18 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
       console.error('Error fetching messages:', error)
     } finally {
       if (isInitial) setIsInitialLoading(false)
+    }
+  }
+
+  async function markAsRead() {
+    try {
+      const token = localStorage.getItem('token')
+      await fetch(`${API_BASE_URL}/api/messages/read/${otherUser.id}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+    } catch (err) {
+      console.error('Error marking as read:', err)
     }
   }
 
@@ -384,7 +430,8 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
   async function deleteMessage(messageId: string) {
     if (messageId.startsWith('temp-')) return; // Can't delete optimistic messages until saved
 
-    if (!confirm('Are you sure you want to delete this message?')) return
+    const confirmed = await showConfirm('Delete message?', 'This action cannot be undone.', 'Delete');
+    if (!confirmed) return
 
     try {
       const token = localStorage.getItem('token')

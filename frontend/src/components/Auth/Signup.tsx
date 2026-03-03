@@ -263,6 +263,17 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
                 </button>
               </form>
 
+              <div className="text-center space-y-2">
+                <p className="text-sm text-gray-400">
+                  Already registered? <Link to="/login" className="text-purple-500 hover:underline cursor-pointer">Login</Link>
+                </p>
+                <div className="pt-1">
+                  <Link to="/privacy-policy" className="text-xs text-gray-500 hover:text-purple-400 transition-colors">
+                    Privacy Policy
+                  </Link>
+                </div>
+              </div>
+
               <div className="flex items-center gap-4">
                 <div className="flex-1 h-px bg-gray-700"></div>
                 <span className="text-gray-500 text-sm">or</span>
@@ -273,13 +284,14 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
                 <GoogleAuth
                   onSuccess={handleAuthSuccess}
                   setIsLoading={setIsLoading}
+                  onBeforeLogin={() => {
+                    if (!agreedToTerms) {
+                      showAlert('Please agree to Terms and Conditions', 'warning')
+                      return false
+                    }
+                    return true
+                  }}
                 />
-              </div>
-
-              <div className="text-center mt-4">
-                <p className="text-sm text-gray-400">
-                  Already registered? <Link to="/login" className="text-purple-500 hover:underline cursor-pointer">Login</Link>
-                </p>
               </div>
             </div>
           )}

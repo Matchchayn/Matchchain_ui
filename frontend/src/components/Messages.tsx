@@ -97,7 +97,7 @@ export default function Messages({ session }: MessagesProps) {
           is_read: item.lastMessage.isRead,
           message_type: item.lastMessage.messageType
         } : null,
-        unread_count: 0
+        unread_count: item.unreadCount || 0
       }))
 
       setConversations(formattedConversations)
@@ -113,6 +113,21 @@ export default function Messages({ session }: MessagesProps) {
   async function handleConversationClick(convo: Conversation) {
     setSelectedUser(convo.other_user)
     setSelectedConversation(convo.id)
+
+    // Mark as read in backend
+    try {
+      const token = localStorage.getItem('token')
+      await fetch(`${API_BASE_URL}/api/messages/read/${convo.other_user.id}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      // Update local state immediately
+      setConversations(prev => prev.map(c =>
+        c.id === convo.id ? { ...c, unread_count: 0 } : c
+      ))
+    } catch (err) {
+      console.error('Error marking as read:', err)
+    }
   }
 
   function formatTime(timestamp: string) {
@@ -186,25 +201,28 @@ export default function Messages({ session }: MessagesProps) {
                     {/* Content */}
                     <div className="flex-1 min-w-0 text-left">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-white font-semibold truncate">
+                        <h3 className={`truncate transition-colors ${convo.unread_count > 0 ? 'text-white font-black' : 'text-white/90 font-semibold'}`}>
                           {convo.other_user.first_name} {convo.other_user.last_name}
                         </h3>
                         {convo.last_message && (
-                          <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                          <span className={`text-[10px] uppercase tracking-tighter ml-2 flex-shrink-0 font-bold ${convo.unread_count > 0 ? 'text-purple-400' : 'text-gray-500'}`}>
                             {formatTime(convo.last_message.created_at)}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-400 truncate">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`text-sm truncate flex-1 ${convo.unread_count > 0 ? 'text-white font-bold' : 'text-gray-400 font-medium'}`}>
                           {convo.last_message
                             ? (convo.last_message.message_type === 'attachment' ? '📷 Sent image' : convo.last_message.content)
                             : 'No messages yet'}
                         </p>
                         {convo.unread_count > 0 && (
-                          <span className="ml-2 flex-shrink-0 w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center text-xs text-white">
-                            {convo.unread_count}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)] animate-pulse" />
+                            <span className="min-w-[18px] h-[18px] bg-purple-600 rounded-full flex items-center justify-center text-[10px] text-white font-black px-1">
+                              {convo.unread_count}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -218,6 +236,7 @@ export default function Messages({ session }: MessagesProps) {
           <div className={`${selectedConversation ? 'block' : 'hidden lg:block'} flex-1 bg-[#090a1e]`}>
             {selectedConversation && selectedUser ? (
               <ChatWindow
+                key={selectedConversation}
                 conversationId={selectedConversation}
                 currentUserId={session.user._id || session.user.id}
                 otherUser={selectedUser}

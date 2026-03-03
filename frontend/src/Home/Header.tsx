@@ -131,8 +131,8 @@ export default function Header({ userId }: HeaderProps) {
 
               {/* Logo */}
               <div className="flex items-center gap-2">
-                <img src="/matchlogo.png" alt="Matchchayn" className="w-6 h-6 object-contain" />
-                <h1 className="text-lg sm:text-xl font-bold text-white uppercase tracking-wider italic">MatchChayn</h1>
+                <img src="/matchlogo.png" alt="Matchchayn" className="w-8 h-8 object-contain" />
+                <h1 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-wider italic">MatchChayn</h1>
               </div>
             </div>
 

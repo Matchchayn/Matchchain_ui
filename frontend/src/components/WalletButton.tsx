@@ -77,9 +77,10 @@ export default function WalletButton() {
       <button
         onClick={() => setShowModal(true)}
         disabled={connecting}
-        className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-full transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
+        className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-full transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap flex items-center gap-2"
       >
-        {connecting ? 'Connecting...' : 'Connect wallet'}
+        <span>{connecting ? 'Connecting...' : 'Connect wallet'}</span>
+        <span className="bg-white/20 text-[8px] px-1.5 py-0.5 rounded-full font-black uppercase">Soon</span>
       </button>
 
       {/* Wallet Selection Modal - Rendered as Portal */}

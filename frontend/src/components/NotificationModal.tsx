@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { API_BASE_URL } from '../config';
+import { useAlert } from '../hooks/useAlert';
 
 interface Notification {
     _id: string
@@ -24,6 +25,7 @@ interface NotificationModalProps {
 let cachedNotifications: Notification[] | null = null
 
 export default function NotificationModal({ isOpen, onClose, token }: NotificationModalProps) {
+    const { showAlert, showConfirm } = useAlert()
     const [notifications, setNotifications] = useState<Notification[]>(cachedNotifications || [])
     const [loading, setLoading] = useState(!cachedNotifications)
 
@@ -66,6 +68,63 @@ export default function NotificationModal({ isOpen, onClose, token }: Notificati
         }
     }
 
+    const handleDeleteNotification = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation()
+        const deleteUrl = `${API_BASE_URL}/api/notifications/${id}`;
+        console.log(`🗑️ Attempting to delete notification: ${id} at ${deleteUrl}`);
+
+        try {
+            const res = await fetch(deleteUrl, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            const responseData = await res.json().catch(() => ({}));
+            console.log(`📡 Delete response status: ${res.status}`, responseData);
+
+            if (res.ok) {
+                const updated = notifications.filter(n => n._id !== id)
+                setNotifications(updated)
+                cachedNotifications = updated
+                console.log(`✅ Notification ${id} deleted successfully from UI`);
+            } else {
+                console.error(`❌ Delete failed:`, responseData);
+                const errorMsg = responseData.details
+                    ? `${responseData.message} (${responseData.details})`
+                    : (responseData.message || 'Server error');
+                showAlert(`Failed to delete: ${errorMsg}`, 'error');
+            }
+        } catch (err: any) {
+            console.error('🔥 Error in handleDeleteNotification:', err)
+            showAlert(`Network error: ${err.message}`, 'error');
+        }
+    }
+
+    const handleClearAll = async () => {
+        const confirmed = await showConfirm('Clear all notifications?', 'This action cannot be undone.', 'Clear All');
+        if (!confirmed) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/notifications`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+
+            if (res.ok) {
+                setNotifications([]);
+                cachedNotifications = [];
+                showAlert('All notifications cleared', 'success');
+            } else {
+                showAlert('Failed to clear notifications', 'error');
+            }
+        } catch (err) {
+            console.error('Error clearing notifications:', err);
+            showAlert('A network error occurred', 'error');
+        }
+    }
+
     if (!isOpen) return null
 
     return createPortal(
@@ -81,9 +140,19 @@ export default function NotificationModal({ isOpen, onClose, token }: Notificati
                 className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 w-[calc(100vw-2rem)] sm:w-96 z-[160] bg-[#1a1a2e] border border-purple-500/30 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-right-4 fade-in duration-300"
                 onClick={e => e.stopPropagation()}
             >
-                <div className="p-4 border-b border-purple-500/20 flex items-center justify-between">
-                    <h3 className="text-white font-bold text-lg">Notifications</h3>
-                    <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors">
+                <div className="p-4 border-b border-purple-500/20 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <h3 className="text-white font-bold text-lg">Notifications</h3>
+                        {notifications.length > 0 && (
+                            <button
+                                onClick={handleClearAll}
+                                className="text-[10px] text-purple-400 hover:text-purple-300 font-bold uppercase tracking-widest bg-purple-500/10 px-2 py-1 rounded-md transition-all active:scale-95"
+                            >
+                                Clear All
+                            </button>
+                        )}
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white transition-colors flex-shrink-0">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -109,7 +178,7 @@ export default function NotificationModal({ isOpen, onClose, token }: Notificati
                     ) : (
                         <div className="divide-y divide-purple-500/10">
                             {notifications.map((notif) => (
-                                <div key={notif._id} className={`p-4 flex items-start gap-3 hover:bg-purple-500/5 transition-colors ${!notif.isRead ? 'bg-purple-500/10' : ''}`}>
+                                <div key={notif._id} className={`p-4 flex items-start gap-3 hover:bg-purple-500/5 transition-colors group ${!notif.isRead ? 'bg-purple-500/10' : ''}`}>
                                     <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
                                         {notif.sender.avatarUrl ? (
                                             <img src={notif.sender.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -126,9 +195,20 @@ export default function NotificationModal({ isOpen, onClose, token }: Notificati
                                             {notif.type === 'match' && " It's a match! Send a message now. 💖"}
                                             {notif.type === 'message' && ' sent you a message.'}
                                         </p>
-                                        <p className="text-gray-500 text-[10px] uppercase tracking-wider mt-1 font-medium italic">
-                                            {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </p>
+                                        <div className="flex items-center justify-between mt-1">
+                                            <p className="text-gray-500 text-[10px] uppercase tracking-wider font-medium italic">
+                                                {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                            <button
+                                                onClick={(e) => handleDeleteNotification(notif._id, e)}
+                                                className="opacity-40 group-hover:opacity-100 p-2 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded transition-all cursor-pointer z-[170]"
+                                                title="Delete notification"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                     </div>
                                     {!notif.isRead && (
                                         <div className="w-2 h-2 rounded-full bg-purple-500 mt-2"></div>

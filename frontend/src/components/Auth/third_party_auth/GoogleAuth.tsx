@@ -6,9 +6,10 @@ import { API_BASE_URL } from '../../../config';
 interface GoogleAuthProps {
     onSuccess: () => void
     setIsLoading: (loading: boolean) => void
+    onBeforeLogin?: () => boolean
 }
 
-export default function GoogleAuth({ onSuccess, setIsLoading }: GoogleAuthProps) {
+export default function GoogleAuth({ onSuccess, setIsLoading, onBeforeLogin }: GoogleAuthProps) {
     const { showAlert } = useAlert()
 
     const handleGoogleLogin = useGoogleLogin({
@@ -40,13 +41,19 @@ export default function GoogleAuth({ onSuccess, setIsLoading }: GoogleAuthProps)
         },
         onError: () => {
             showAlert('Google Login Failed', 'error')
-        }
+        },
+        // Always show account chooser + sign-in confirmation screen
+        prompt: 'select_account',
+        flow: 'implicit',
     })
 
     return (
         <button
             type="button"
-            onClick={() => handleGoogleLogin()}
+            onClick={() => {
+                if (onBeforeLogin && !onBeforeLogin()) return
+                handleGoogleLogin()
+            }}
             className="flex items-center justify-center w-12 h-12 bg-white hover:bg-gray-100 rounded-full border border-gray-300 transition-all active:scale-95 shadow-lg"
             title="Continue with Google"
         >

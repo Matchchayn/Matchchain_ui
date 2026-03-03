@@ -57,7 +57,14 @@ export default function App() {
     if (!token || !userStr) return true; // No session, show login instantly
 
     const isSignupFlow = localStorage.getItem('isSignupFlow') === 'true';
-    if (!isSignupFlow) return true; // Not in signup, show home instantly
+    const uStr = localStorage.getItem('user');
+    let uStatus = null;
+    if (uStr) try { uStatus = JSON.parse(uStr).onboardingStatus; } catch (e) { }
+
+    // Force onboarding if status is incomplete, even if signup flag is missing
+    const isIncomplete = (uStatus && uStatus !== 'completed' && uStatus !== 'media_uploaded') || isSignupFlow;
+
+    if (!isIncomplete) return true; // Safe to show home
 
     try {
       const u = JSON.parse(userStr);
@@ -109,7 +116,10 @@ export default function App() {
 
         const isSignupFlow = localStorage.getItem('isSignupFlow') === 'true';
 
-        if (!isSignupFlow || status === 'completed' || status === 'media_uploaded' || localStorage.getItem(`onboarding_completed_${uid}`) === 'true') {
+        // Skip onboarding only if it's NOT a signup flow and status is not explicitly "started" or missing
+        const isBypass = (!isSignupFlow && status !== 'started' && status !== 'profile_pending') || status === 'completed' || status === 'media_uploaded' || localStorage.getItem(`onboarding_completed_${uid}`) === 'true';
+
+        if (isBypass) {
           localStorage.removeItem('isSignupFlow');
           setHasProfile(true); setHasInterests(true); setHasPreferences(true); setHasMedia(true);
           setOnboardingStep(0);

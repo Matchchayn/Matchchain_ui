@@ -16,8 +16,8 @@ export default function Sidebar() {
     <aside className="hidden lg:flex fixed left-0 top-[var(--connectivity-height,0px)] h-[calc(100vh-var(--connectivity-height,0px))] w-64 bg-[#090a1e] border-r border-purple-500/10 flex-col z-40 transition-all duration-300">
       {/* Logo */}
       <div className="flex items-center gap-2 px-6 py-6">
-        <img src="/matchlogo.png" alt="Matchchayn" className="w-7 h-7 object-contain" />
-        <span className="text-white font-bold text-xl uppercase tracking-wider italic">MatchChayn</span>
+        <img src="/matchlogo.png" alt="Matchchayn" className="w-9 h-9 object-contain" />
+        <span className="text-white font-bold text-2xl uppercase tracking-wider italic">MatchChayn</span>
       </div>
 
       {/* Navigation Items */}
@@ -30,7 +30,8 @@ export default function Sidebar() {
           {isActive('/') && (
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-purple-500 rounded-r-full"></div>
           )}
-          <img src="/matchlogo.png" alt="Match" className="h-5 object-contain" />
+          <img src="/matchlogo.png" alt="Match" className="h-6 object-contain" />
+          <span className="font-medium">Match</span>
         </button>
 
         <button
