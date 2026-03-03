@@ -42,7 +42,7 @@ export default function GoogleAuth({ onSuccess, setIsLoading, onBeforeLogin }: G
         onError: () => {
             showAlert('Google Login Failed', 'error')
         },
-        // Always show account chooser + sign-in confirmation screen
+        // Force account chooser + ensures consistency 
         prompt: 'select_account',
         flow: 'implicit',
     })
