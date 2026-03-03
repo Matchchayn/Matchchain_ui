@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../Home/Header'
 import Sidebar from './Sidebar'
-import TopLoader from './Common/TopLoader'
 
 interface UserData {
   _id: string
@@ -38,7 +37,7 @@ interface ProfileProps {
   session: any
 }
 
-import { fetchUserProfile } from '../utils/userProfileService'
+import { fetchUserProfile, clearProfileCache } from '../utils/userProfileService'
 
 export default function Profile({ session }: ProfileProps) {
   const navigate = useNavigate()
@@ -46,13 +45,16 @@ export default function Profile({ session }: ProfileProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Always clear cache so we get the freshest signed video URL from the backend
+    clearProfileCache()
     fetchProfile()
   }, [])
 
   const fetchProfile = async () => {
     try {
       const token = session?.token || localStorage.getItem('token')
-      const data = await fetchUserProfile(token || '')
+      // Force refresh to always get a fresh signed video URL from backend
+      const data = await fetchUserProfile(token || '', true)
       if (data) {
         setUser(data)
       }
@@ -85,8 +87,7 @@ export default function Profile({ session }: ProfileProps) {
   return (
     <>
       <Sidebar />
-      <Header userId={userId} />
-      {loading && <TopLoader message="Loading profile..." />}
+      <Header userId={userId} isLoading={loading} />
 
       <div className="min-h-screen bg-[#0a0a1f] text-white lg:pl-64">
         <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4" style={{ paddingTop: '70px' }}>

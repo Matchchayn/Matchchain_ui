@@ -8,6 +8,8 @@ import { useAlert } from '../hooks/useAlert'
 import { fetchMatchingProfiles, type UserProfile } from '../utils/matchingAlgorithm'
 import { likeProfile } from '../utils/likesHandler'
 
+import Stories from './Stories'
+
 // Cache matching profiles to prevent constant re-fetching
 let cachedProfiles: UserProfile[] | null = null
 
@@ -31,6 +33,12 @@ export default function Home({ session }: any) {
   const [loading, setLoading] = useState(true)
   const [liking, setLiking] = useState(false)
   const [isMuted, setIsMuted] = useState(true)
+  const [videoReady, setVideoReady] = useState(false)
+
+  // Reset videoReady when changing users
+  useEffect(() => {
+    setVideoReady(false)
+  }, [currentIndex])
 
   useEffect(() => {
     if (cachedProfiles && cachedProfiles.length > 0) {
@@ -93,12 +101,16 @@ export default function Home({ session }: any) {
 
   return (
     <div className="min-h-screen bg-[#090a1e] flex flex-col">
-      <Header />
+      <Header isLoading={loading} />
       <Sidebar />
       <div className="flex-1 lg:pl-64 flex flex-col">
-        <div className="flex-1 flex flex-col lg:flex-row pt-20">
+        {/* Mobile Stories Section */}
+        <div className="lg:hidden w-full bg-[#090a1e]/50 backdrop-blur-md border-b border-white/5 pt-20">
+          <Stories layout="mobile" />
+        </div>
+
+        <div className={`flex-1 flex flex-col lg:flex-row ${window.innerWidth < 1024 ? 'pt-2' : 'pt-20'}`}>
           <main className="flex-1 flex flex-col items-center justify-center p-4">
-            {/* Removed stories from here to place below header */}
 
             {loading ? (
               <div className="w-full max-w-md bg-[#0d0e24] rounded-[2rem] overflow-hidden shadow-2xl border border-white/5 animate-pulse">
@@ -118,14 +130,21 @@ export default function Home({ session }: any) {
                 <div className="aspect-[3/4] relative overflow-hidden bg-black">
                   {users[currentIndex].videoUrl ? (
                     <>
+                      {/* Only show video, no profile picture backdrop */}
+                      {!videoReady && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                      )}
                       <video
                         key={users[currentIndex].id}
                         src={users[currentIndex].videoUrl}
-                        className="w-full h-full object-cover"
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
                         autoPlay
                         muted={isMuted}
                         loop
                         playsInline
+                        onLoadedData={() => setVideoReady(true)}
                       />
                       {/* Mute/Unmute Button */}
                       <button
@@ -155,8 +174,11 @@ export default function Home({ session }: any) {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60"></div>
                   <div className="absolute bottom-0 left-0 right-0 p-8">
-                    <h2 className="text-3xl font-bold text-white">
+                    <h2 className="text-3xl font-bold text-white flex items-center gap-2">
                       {users[currentIndex].firstName}, {calculateAge(users[currentIndex].dateOfBirth)}
+                      {users[currentIndex].isOnline && (
+                        <span className="w-3 h-3 bg-green-500 rounded-full border-2 border-[#0d0e24] shadow-lg animate-pulse" title="Online" />
+                      )}
                     </h2>
                     <p className="text-gray-300 font-medium">{users[currentIndex].city}</p>
                   </div>

@@ -21,7 +21,6 @@ import CreateEvent from './components/CreateEvent'
 import EventDetails from './components/EventDetails'
 import VidbloqWrapper from './components/video/vidbloq-wrapper'
 import { useAlert } from './hooks/useAlert'
-import TopLoader from './components/Common/TopLoader'
 import ConnectivityStatus from './components/Common/ConnectivityStatus'
 import IncomingCallModal from './components/Call/IncomingCallModal'
 import CallScreen from './components/Call/CallScreen'
@@ -367,9 +366,8 @@ export default function App() {
   // Prevent "Glimpse" of Home: Wait for onboarding status check to finish
   if (!isOnboardingChecked) {
     return (
-      <div className="min-h-screen bg-[#090a1e]">
-        <ConnectivityStatus />
-        <TopLoader message="Loading..." />
+      <div className="flex-1 flex items-center justify-center h-screen">
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }

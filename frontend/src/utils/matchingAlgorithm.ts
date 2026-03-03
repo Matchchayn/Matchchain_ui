@@ -14,6 +14,7 @@ export interface UserProfile {
   videoUrl?: string
   interests: string[]
   distance?: number
+  isOnline?: boolean
 }
 
 /**
@@ -48,7 +49,8 @@ export async function fetchMatchingProfiles(
       secondaryPhotoUrl: user.secondaryPhotoUrl,
       videoUrl: user.videoUrl,
       interests: user.interests || [],
-      distance: Math.floor(Math.random() * 20) + 1 // placeholder distance
+      distance: Math.floor(Math.random() * 20) + 1, // placeholder distance
+      isOnline: user.isOnline || false
     }));
 
   } catch (error) {

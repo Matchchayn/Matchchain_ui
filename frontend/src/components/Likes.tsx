@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../Home/Header'
 import Sidebar from './Sidebar'
-import TopLoader from './Common/TopLoader'
 import { fetchLikedProfiles } from '../utils/likesHandler'
 import Stories from '../Home/Stories'
 import MobileBottomNav from './MobileBottomNav'
@@ -36,21 +35,10 @@ export default function Likes({ session }: LikesProps) {
     }
   }
 
-  if (loading) {
-    return (
-      <>
-        <Sidebar />
-        <Header userId={session.user.id || session.user._id} />
-        <TopLoader message="Loading your likes..." />
-        <div className="min-h-screen bg-[#0a0a1f] pt-16 lg:pl-64" />
-      </>
-    )
-  }
-
   return (
     <>
       <Sidebar />
-      <Header userId={session.user.id || session.user._id} />
+      <Header userId={session.user.id || session.user._id} isLoading={loading} />
 
       <div className="min-h-screen bg-[#0a0a1f] pt-16 pb-28 lg:pb-8 lg:pl-64">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">

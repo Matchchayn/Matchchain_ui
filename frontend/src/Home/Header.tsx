@@ -12,11 +12,12 @@ import { API_BASE_URL } from '../config';
 
 interface HeaderProps {
   userId?: string
+  isLoading?: boolean
 }
 
 const userDataCache = new Map<string, { avatarUrl: string | null }>()
 
-export default function Header({ userId }: HeaderProps) {
+export default function Header({ userId, isLoading }: HeaderProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { publicKey, connected } = useWallet()
@@ -30,7 +31,18 @@ export default function Header({ userId }: HeaderProps) {
   const hasFetched = useRef(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-
+  // Determine page title
+  const getPageTitle = () => {
+    switch (location.pathname) {
+      case '/': return 'Explore Matches'
+      case '/profile': return 'My Profile'
+      case '/messages': return 'Messages'
+      case '/likes': return 'My Likes'
+      case '/events': return 'Local Events'
+      case '/settings': return 'Settings'
+      default: return 'Explore'
+    }
+  }
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -134,11 +146,18 @@ export default function Header({ userId }: HeaderProps) {
                 <img src="/matchlogo.png" alt="Matchchayn" className="w-8 h-8 object-contain" />
                 <h1 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-wider italic">MatchChayn</h1>
               </div>
+              {/* Mobile Spinner */}
+              {isLoading && (
+                <div className="lg:hidden w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+              )}
             </div>
 
-            {/* Center - Explore Matches (desktop only) */}
-            <div className="hidden lg:block text-white/80 font-medium">
-              Explore Matches
+            {/* Center - Page Title (desktop only) + Spinner */}
+            <div className="hidden lg:flex items-center gap-3 text-white/80 font-medium">
+              {getPageTitle()}
+              {isLoading && (
+                <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              )}
             </div>
 
             {/* Right side buttons */}
@@ -257,7 +276,10 @@ export default function Header({ userId }: HeaderProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-bold truncate">My Profile</p>
-                  <p className="text-purple-400/60 text-[10px] tracking-widest font-bold">Online</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                    <p className="text-purple-400/60 text-[10px] tracking-widest font-bold uppercase">Online Now</p>
+                  </div>
                 </div>
               </div>
             </div>

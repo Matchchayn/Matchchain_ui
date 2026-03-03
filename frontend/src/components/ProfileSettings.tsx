@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../Home/Header'
 import Sidebar from './Sidebar'
-import TopLoader from './Common/TopLoader'
 import { fetchUserProfile, clearProfileCache } from '../utils/userProfileService'
 import { API_BASE_URL } from '../config';
 
@@ -293,8 +292,7 @@ export default function ProfileSettings({ user }: ProfileSettingsProps) {
   return (
     <>
       <Sidebar />
-      <Header userId={user?.id || user?._id || ''} />
-      {loading && <TopLoader message="Loading settings..." />}
+      <Header userId={user?.id || user?._id || ''} isLoading={loading} />
       <div className="min-h-screen bg-[#090a1e] text-white lg:pl-64">
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-4" style={{ paddingTop: '70px' }}>
 
