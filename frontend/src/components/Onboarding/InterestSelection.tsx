@@ -111,8 +111,8 @@ export default function InterestSelection({ session, onComplete, onBack }: Inter
         <div className="w-full max-w-md text-white">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-4">
-            <img src="/favicon.png" alt="Matchchayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-            <h1 className="text-2xl font-bold uppercase tracking-widest">MATCHCHAYN</h1>
+            <img src="/favicon.png" alt="MatchChayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+            <h1 className="text-2xl font-bold tracking-widest">MatchChayn</h1>
           </div>
 
           {/* Progress */}
@@ -160,7 +160,7 @@ export default function InterestSelection({ session, onComplete, onBack }: Inter
 
 
           <p className="text-[10px] text-center text-gray-600 uppercase tracking-widest leading-loose">
-            By continuing, you agree to Matchchayn<br />
+            By continuing, you agree to MatchChayn<br />
             <span className="text-gray-400 hover:text-purple-400 cursor-pointer">Terms of service</span> & <a href="/privacy-policy" target="_blank" className="text-gray-400 hover:text-purple-400 cursor-pointer">Privacy Policy</a>
           </p>
         </div>

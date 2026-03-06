@@ -1,5 +1,6 @@
 import './index.css'
 import { useState, useEffect, useRef } from 'react'
+import MainLayout from './components/MainLayout'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { VidbloqProvider } from "@vidbloq/react";
 import { WalletContextProvider } from './contexts/WalletContextProvider'
@@ -9,7 +10,6 @@ import ForgotPassword from './components/Auth/ForgotPassword'
 import Home from './Home/index'
 import Settings from './Settings'
 import Profile from './components/Profile'
-import Likes from './components/Likes'
 import MatchesLikes from './components/MatchesLikes'
 import Messages from './components/Messages'
 import Events from './components/Events'
@@ -30,16 +30,23 @@ import { socketService } from './utils/socketService'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 
 import { fetchUserProfile } from './utils/userProfileService'
+import { prefetchAppData } from './utils/prefetchService'
+import { safeLocalStorageSet } from './utils/storageUtils'
 
 export default function App() {
   // Synchronously initialize state from localStorage to prevent UI flashing on refresh
   const [session, setSession] = useState<any>(() => {
     const token = localStorage.getItem('token')
     const userStr = localStorage.getItem('user')
+    console.log('[App] Initial check from localStorage:', { hasToken: !!token, hasUser: !!userStr });
     if (token && userStr) {
       try {
-        return { user: JSON.parse(userStr), token }
-      } catch (e) { }
+        const u = JSON.parse(userStr);
+        console.log('[App] Parsed user from storage:', u.email, u.id || u._id);
+        return { user: u, token }
+      } catch (e) {
+        console.error('[App] Failed to parse user from storage');
+      }
     }
     return null
   })
@@ -95,6 +102,7 @@ export default function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
   const handleSignOut = () => {
+    console.log('[App] handleSignOut triggered');
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     setSession(null)
@@ -104,13 +112,19 @@ export default function App() {
   const refreshSession = () => {
     const token = localStorage.getItem('token')
     const user = localStorage.getItem('user')
-    setIsOnboardingChecked(false); // Reset check status to avoid glimpses
+    console.log('[App] refreshSession check:', {
+      tokenPresent: !!token,
+      userPresent: !!user,
+      tokenPreview: token ? token.substring(0, 10) + '...' : 'null',
+      userPreview: user ? user.substring(0, 20) + '...' : 'null'
+    });
 
     if (token && user) {
       try {
         const userObj = JSON.parse(user)
         const uid = userObj.id || userObj._id
         const status = userObj.onboardingStatus;
+        console.log('[App] Setting session for:', userObj.email, 'Status:', status);
         setSession({ user: userObj, token })
 
         const isSignupFlow = localStorage.getItem('isSignupFlow') === 'true';
@@ -118,53 +132,38 @@ export default function App() {
         // Skip onboarding only if it's NOT a signup flow and status is not explicitly "started" or missing
         const isBypass = (!isSignupFlow && status !== 'started' && status !== 'profile_pending') || status === 'completed' || status === 'media_uploaded' || localStorage.getItem(`onboarding_completed_${uid}`) === 'true';
 
+        console.log('[App] Onboarding check:', { isSignupFlow, isBypass, status });
+
         if (isBypass) {
           localStorage.removeItem('isSignupFlow');
           setHasProfile(true); setHasInterests(true); setHasPreferences(true); setHasMedia(true);
           setOnboardingStep(0);
-          setIsOnboardingChecked(true); // <--- Set this IMMEDIATELY to prevent glimpse
+          // Set checked to true BEFORE the background fetch to ensure Home appears immediately
+          setIsOnboardingChecked(true);
+
+          // Pre-fetch critical data in background so pages load instantly
+          prefetchAppData(uid, token);
 
           fetchUserProfile(token).then(u => {
             if (u) {
-              localStorage.setItem('user', JSON.stringify(u));
+              const currentUid = u.id || u._id;
+              safeLocalStorageSet('user', u);
               if (u.onboardingStatus === 'completed' || u.onboardingStatus === 'media_uploaded') {
-                localStorage.setItem(`onboarding_completed_${uid}`, 'true');
+                safeLocalStorageSet(`onboarding_completed_${currentUid}`, 'true');
               }
             }
-          }).catch(e => console.error("Silent refresh failed:", e));
+          }).catch(e => console.error("[App] Silent refresh failed:", e));
           return;
         }
 
-        if (status && status !== 'started') {
-          const profileDone = status !== 'profile_pending';
-          const interestsDone = ['interests_selected', 'preferences_set', 'media_uploaded', 'completed'].includes(status);
-          const preferencesDone = ['preferences_set', 'media_uploaded', 'completed'].includes(status);
-          const mediaDone = status === 'media_uploaded' || status === 'completed';
-
-          setHasProfile(profileDone);
-          setHasInterests(interestsDone);
-          setHasPreferences(preferencesDone);
-          setHasMedia(mediaDone);
-
-          if (!profileDone) setOnboardingStep(1);
-          else if (!interestsDone) setOnboardingStep(2);
-          else if (!preferencesDone) setOnboardingStep(3);
-          else if (!mediaDone) setOnboardingStep(4);
-          else setOnboardingStep(0);
-
-          setIsOnboardingChecked(true);
-          checkUserOnboarding(uid);
-          return;
-        }
-
-        // If no status or incomplete, wait for server check before showing anything
-        setOnboardingStep(1); // Default to first step if unsure
+        setIsOnboardingChecked(false); // Only set to false if we actually need to check/wait for onboarding
         checkUserOnboarding(uid)
       } catch (e) {
-        console.error("Session refresh error:", e)
+        console.error("[App] Session refresh error:", e)
         handleSignOut() // Use existing signout logic
       }
     } else {
+      console.log('[App] No session found, resetting stats');
       setSession(null)
       setIsOnboardingChecked(true)
     }
@@ -241,13 +240,13 @@ export default function App() {
       if (!user) throw new Error('No user data returned')
 
       // Sync fresh data to localStorage
-      localStorage.setItem('user', JSON.stringify(user))
+      safeLocalStorageSet('user', user);
 
       // Check server-side status (or local storage override if they skipped Media step)
       const onboardingCompletedLocally = localStorage.getItem(`onboarding_completed_${userId}`)
 
       if (user.onboardingStatus === 'completed' || user.onboardingStatus === 'media_uploaded' || onboardingCompletedLocally === 'true') {
-        localStorage.setItem(`onboarding_completed_${userId}`, 'true')
+        safeLocalStorageSet(`onboarding_completed_${userId}`, 'true');
         localStorage.removeItem('isSignupFlow')
         setHasInterests(true)
         setHasPreferences(true)
@@ -311,22 +310,25 @@ export default function App() {
     setHasProfile(true)
     setOnboardingStep(2)
     // Persist partially completed state locally to survive glitches
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    localStorage.setItem('user', JSON.stringify({ ...user, onboardingStatus: 'profile_completed', firstName: 'Pending' }))
+    const userStr = localStorage.getItem('user')
+    const user = userStr ? JSON.parse(userStr) : {}
+    safeLocalStorageSet('user', { ...user, onboardingStatus: 'profile_completed', firstName: 'Pending' })
   }
 
   const handleInterestsComplete = () => {
     setHasInterests(true)
     setOnboardingStep(3)
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    localStorage.setItem('user', JSON.stringify({ ...user, onboardingStatus: 'interests_selected' }))
+    const userStr = localStorage.getItem('user')
+    const user = userStr ? JSON.parse(userStr) : {}
+    safeLocalStorageSet('user', { ...user, onboardingStatus: 'interests_selected' })
   }
 
   const handlePreferencesComplete = () => {
     setHasPreferences(true)
     setOnboardingStep(4)
-    const user = JSON.parse(localStorage.getItem('user') || '{}')
-    localStorage.setItem('user', JSON.stringify({ ...user, onboardingStatus: 'preferences_set' }))
+    const userStr = localStorage.getItem('user')
+    const user = userStr ? JSON.parse(userStr) : {}
+    safeLocalStorageSet('user', { ...user, onboardingStatus: 'preferences_set' })
   }
 
   const handleMediaComplete = async () => {
@@ -335,9 +337,10 @@ export default function App() {
     localStorage.removeItem('isSignupFlow')
     if (session) {
       const uid = session.user.id || session.user._id
-      localStorage.setItem(`onboarding_completed_${uid}`, 'true')
-      const user = JSON.parse(localStorage.getItem('user') || '{}')
-      localStorage.setItem('user', JSON.stringify({ ...user, onboardingStatus: 'completed' }))
+      safeLocalStorageSet(`onboarding_completed_${uid}`, 'true');
+      const userStr = localStorage.getItem('user')
+      const user = userStr ? JSON.parse(userStr) : {}
+      safeLocalStorageSet('user', { ...user, onboardingStatus: 'completed' });
     }
     showAlert('Welcome! Your profile is complete.', 'success')
   }
@@ -367,7 +370,7 @@ export default function App() {
   if (!isOnboardingChecked) {
     return (
       <div className="flex-1 flex items-center justify-center h-screen">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -411,10 +414,10 @@ export default function App() {
       <WalletContextProvider>
         <ConnectivityStatus />
         <Router>
-          <div className="transition-all duration-300 min-h-screen flex flex-col" style={{ paddingTop: 'var(--connectivity-height, 0px)' }}>
-            <Routes>
+          <Routes>
+            <Route element={<MainLayout session={session} />}>
               <Route path="/" element={<Home session={session} />} />
-              <Route path="/likes" element={<Likes session={session} />} />
+              <Route path="/likes" element={<MatchesLikes session={session} />} />
               <Route path="/matches" element={<MatchesLikes session={session} />} />
               <Route path="/profile" element={<Profile session={session} />} />
               <Route path="/messages" element={<Messages session={session} />} />
@@ -424,17 +427,17 @@ export default function App() {
               <Route path="/events/edit/:id" element={<CreateEvent session={session} />} />
               <Route path="/settings" element={<Settings session={session} />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route
-                path="/video-call/:sessionId"
-                element={
-                  <VidbloqProvider apiKey={apiKey} apiSecret={apiSecret}>
-                    <VidbloqWrapper />
-                  </VidbloqProvider>
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
+            </Route>
+            <Route
+              path="/video-call/:sessionId"
+              element={
+                <VidbloqProvider apiKey={apiKey} apiSecret={apiSecret}>
+                  <VidbloqWrapper />
+                </VidbloqProvider>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </Router>
 
         {/* Global Incoming Call Modal — works on any page */}

@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
             content: [
                 {
                     subtitle: 'Personal Information',
-                    text: 'When you create a Matchchayn account, we collect your name, email address, date of birth, gender, city, country, and relationship status. We also collect photos, videos, and biographical information you choose to share on your profile.'
+                    text: 'When you create a MatchChayn account, we collect your name, email address, date of birth, gender, city, country, and relationship status. We also collect photos, videos, and biographical information you choose to share on your profile.'
                 },
                 {
                     subtitle: 'Usage Data',
@@ -46,7 +46,7 @@ export default function PrivacyPolicy() {
             content: [
                 {
                     subtitle: 'With Other Users',
-                    text: 'Your profile information (name, photos, bio, interests, city) is visible to other Matchchayn users. Your exact email address and account settings are never shared with other users.'
+                    text: 'Your profile information (name, photos, bio, interests, city) is visible to other MatchChayn users. Your exact email address and account settings are never shared with other users.'
                 },
                 {
                     subtitle: 'With Service Providers',
@@ -78,11 +78,11 @@ export default function PrivacyPolicy() {
             content: [
                 {
                     subtitle: 'On-Chain Transactions',
-                    text: 'Certain features may involve interactions with public blockchain networks (e.g., Solana). All blockchain transactions are permanent, publicly viewable, and cannot be deleted or modified by Matchchayn or any other party.'
+                    text: 'Certain features may involve interactions with public blockchain networks (e.g., Solana). All blockchain transactions are permanent, publicly viewable, and cannot be deleted or modified by MatchChayn or any other party.'
                 },
                 {
                     subtitle: 'Wallet Responsibility',
-                    text: 'You are solely responsible for the security of your cryptocurrency wallet, including your private keys and seed phrases. Matchchayn will never ask for your private keys. Lost wallet credentials cannot be recovered by Matchchayn.'
+                    text: 'You are solely responsible for the security of your cryptocurrency wallet, including your private keys and seed phrases. MatchChayn will never ask for your private keys. Lost wallet credentials cannot be recovered by MatchChayn.'
                 }
             ]
         },
@@ -96,7 +96,7 @@ export default function PrivacyPolicy() {
                 },
                 {
                     subtitle: 'Your Control',
-                    text: 'You can clear your local storage at any time through your browser settings. Doing so will log you out of Matchchayn and require you to sign in again.'
+                    text: 'You can clear your local storage at any time through your browser settings. Doing so will log you out of MatchChayn and require you to sign in again.'
                 }
             ]
         },
@@ -124,7 +124,7 @@ export default function PrivacyPolicy() {
             content: [
                 {
                     subtitle: 'Minimum Age',
-                    text: 'Matchchayn is strictly for users aged 18 and older. We do not knowingly collect or solicit personal information from anyone under the age of 18. If we learn that we have collected data from a minor, we will delete that information immediately.'
+                    text: 'MatchChayn is strictly for users aged 18 and older. We do not knowingly collect or solicit personal information from anyone under the age of 18. If we learn that we have collected data from a minor, we will delete that information immediately.'
                 }
             ]
         },
@@ -134,7 +134,7 @@ export default function PrivacyPolicy() {
             content: [
                 {
                     subtitle: 'Global Operations',
-                    text: 'Matchchayn operates globally and your data may be processed in countries outside your country of residence. We implement appropriate safeguards to ensure your data receives adequate protection regardless of where it is processed.'
+                    text: 'MatchChayn operates globally and your data may be processed in countries outside your country of residence. We implement appropriate safeguards to ensure your data receives adequate protection regardless of where it is processed.'
                 }
             ]
         },
@@ -144,7 +144,7 @@ export default function PrivacyPolicy() {
             content: [
                 {
                     subtitle: 'Updates',
-                    text: 'We may update this Privacy Policy from time to time. We will notify you of any material changes by posting an in-app notification or sending an email to the address associated with your account. Your continued use of Matchchayn after any changes indicates your acceptance of the updated policy.'
+                    text: 'We may update this Privacy Policy from time to time. We will notify you of any material changes by posting an in-app notification or sending an email to the address associated with your account. Your continued use of MatchChayn after any changes indicates your acceptance of the updated policy.'
                 }
             ]
         }
@@ -183,7 +183,7 @@ export default function PrivacyPolicy() {
                         Privacy <span className="bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">&amp; Policy</span>
                     </h1>
                     <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
-                        Your privacy matters to us. This policy explains how Matchchayn collects, uses, protects, and shares your personal information.
+                        Your privacy matters to us. This policy explains how MatchChayn collects, uses, protects, and shares your personal information.
                     </p>
                     <div className="flex items-center justify-center gap-2 mt-4 text-xs text-gray-500">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -260,7 +260,7 @@ export default function PrivacyPolicy() {
 
                 {/* Footer */}
                 <div className="mt-8 text-center text-xs text-gray-600">
-                    <p>© {new Date().getFullYear()} Matchchayn. All rights reserved.</p>
+                    <p>© {new Date().getFullYear()} MatchChayn. All rights reserved.</p>
                 </div>
             </div>
         </div>

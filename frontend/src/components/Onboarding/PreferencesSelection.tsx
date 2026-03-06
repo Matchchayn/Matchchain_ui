@@ -105,8 +105,8 @@ export default function PreferencesSelection({ session, onComplete, onBack }: Pr
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-4">
-            <img src="/favicon.png" alt="Matchchayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-            <h1 className="text-2xl font-bold tracking-widest uppercase">MATCHCHAYN</h1>
+            <img src="/favicon.png" alt="MatchChayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+            <h1 className="text-2xl font-bold tracking-widest">MatchChayn</h1>
           </div>
 
           {/* Progress */}

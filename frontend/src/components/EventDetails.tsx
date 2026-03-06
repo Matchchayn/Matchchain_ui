@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import Header from '../Home/Header'
-import Sidebar from './Sidebar'
-import MobileBottomNav from './MobileBottomNav'
 import { useAlert } from '../hooks/useAlert'
 import { API_BASE_URL } from '../config';
+import { safeLocalStorageSet } from '../utils/storageUtils';
 
 interface Attendee {
     _id: string
@@ -35,19 +33,22 @@ export default function EventDetails({ session }: { session: any }) {
     const { id } = useParams()
     const navigate = useNavigate()
     const { showAlert } = useAlert()
-    const [event, setEvent] = useState<EventData | null>(null)
-    const [loading, setLoading] = useState(true)
+    const [event, setEvent] = useState<EventData | null>(() => {
+        const cached = localStorage.getItem(`event_detail_${id}`)
+        return cached ? JSON.parse(cached) : null
+    })
+    const [loading, setLoading] = useState(() => !localStorage.getItem(`event_detail_${id}`))
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         if (id) {
-            fetchEvent()
+            fetchEvent(!!event)
         }
     }, [id])
 
-    const fetchEvent = async () => {
+    const fetchEvent = async (isSilent = false) => {
         try {
-            setLoading(true)
+            if (!isSilent) setLoading(true)
             setError(null)
             const token = localStorage.getItem('token')
             const res = await fetch(`${API_BASE_URL}/api/events/${id}`, {
@@ -57,14 +58,17 @@ export default function EventDetails({ session }: { session: any }) {
             if (res.ok) {
                 const data = await res.json()
                 setEvent(data)
+                safeLocalStorageSet(`event_detail_${id}`, data);
             } else {
                 const errData = await res.json().catch(() => ({}))
                 setError(errData.message || 'Event not found')
-                showAlert(errData.message || 'Event not found', 'error')
+                if (!isSilent) showAlert(errData.message || 'Event not found', 'error')
             }
         } catch (err) {
-            setError('Something went wrong. Please check your connection.')
-            showAlert('Something went wrong', 'error')
+            if (!isSilent) {
+                setError('Something went wrong. Please check your connection.')
+                showAlert('Something went wrong', 'error')
+            }
         } finally {
             setLoading(false)
         }
@@ -93,24 +97,9 @@ export default function EventDetails({ session }: { session: any }) {
         } catch (e) { return 'Invalid Time' }
     }
 
-    const renderLayout = (content: React.ReactNode) => (
-        <div className="min-h-screen bg-[#090a1e] flex flex-col">
-            <Header />
-            <Sidebar />
-            <div className="flex-1 lg:pl-64 flex flex-col">
-                <main className="flex-1 pt-24 pb-24 px-6 sm:px-12 lg:px-20 max-w-5xl mx-auto w-full">
-                    {content}
-                </main>
-                <footer className="lg:hidden">
-                    <MobileBottomNav />
-                </footer>
-            </div>
-        </div>
-    )
-
     if (loading) {
-        return renderLayout(
-            <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
                 <div className="w-10 h-10 border-2 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
                 <p className="text-gray-500 text-xs font-bold tracking-widest">Loading convergence...</p>
             </div>
@@ -118,8 +107,8 @@ export default function EventDetails({ session }: { session: any }) {
     }
 
     if (error || !event) {
-        return renderLayout(
-            <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-6">
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
                 <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center border border-red-500/20">
                     <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -143,8 +132,8 @@ export default function EventDetails({ session }: { session: any }) {
 
     const isOwner = event.createdBy?._id === (session?.user?._id || session?.user?.id)
 
-    return renderLayout(
-        <>
+    return (
+        <div className="flex-1 pt-24 pb-24 px-6 sm:px-12 lg:px-20 max-w-5xl mx-auto w-full">
             {/* Header Section */}
             <div className="flex flex-col gap-8 mb-16">
                 <div className="space-y-4">
@@ -269,6 +258,6 @@ export default function EventDetails({ session }: { session: any }) {
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     )
 }

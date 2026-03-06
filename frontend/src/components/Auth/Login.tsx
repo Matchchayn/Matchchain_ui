@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import GoogleAuth from './third_party_auth/GoogleAuth'
 import { useAlert } from '../../hooks/useAlert'
 import { API_BASE_URL } from '../../config';
+import { safeLocalStorageSet } from '../../utils/storageUtils';
 
 interface LoginProps {
   onLoginSuccess?: () => void
@@ -37,12 +38,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Login failed')
 
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      localStorage.setItem('lastLoginMethod', 'email')
-      clearProfileCache()
+      console.log('[Login] Authentication successful. Clearing memory caches...');
+      clearProfileCache() // Call this FIRST to reset memory/old storage, because it removes 'user' key.
+
+      console.log('[Login] Persisting new session...');
+      safeLocalStorageSet('token', data.token);
+      safeLocalStorageSet('user', data.user);
+      safeLocalStorageSet('lastLoginMethod', 'email');
+
+      console.log('[Login] Storage verification:', { token: !!localStorage.getItem('token'), user: !!localStorage.getItem('user') });
+
       localStorage.removeItem('isSignupFlow')
 
+      console.log('[Login] Session persisted. Calling refreshSession...');
       showAlert('Signed in successfully', 'success')
 
       if (onLoginSuccess) {
@@ -83,13 +91,13 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6">
-            <img src="/favicon.png" alt="Matchchayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-wider">MATCHCHAYN</h1>
+            <img src="/favicon.png" alt="MatchChayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-wider">MatchChayn</h1>
           </div>
 
           {/* Welcome Text */}
           <div className="text-center mb-4 sm:mb-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Welcome to Matchchayn</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Welcome to MatchChayn</h2>
             <p className="text-gray-400 text-sm">Match with those who vibe on your frequency on-chain.</p>
           </div>
 
@@ -194,6 +202,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 </span>
               )}
             </div>
+          </div>
+
+          {/* Emergency Cache Clear */}
+          <div className="mt-8 pt-6 border-t border-white/5 text-center">
+            <button
+              onClick={() => {
+                localStorage.clear();
+                window.location.reload();
+              }}
+              className="text-[10px] text-gray-600 hover:text-purple-400 uppercase tracking-widest transition-colors"
+            >
+              Reset App Cache (Emergency)
+            </button>
           </div>
 
         </div>

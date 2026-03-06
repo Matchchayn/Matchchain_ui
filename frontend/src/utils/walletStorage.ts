@@ -1,11 +1,9 @@
-/**
- * Utility functions for storing and retrieving wallet address
- */
+import { safeLocalStorageSet } from './storageUtils';
 
 const WALLET_ADDRESS_KEY = 'wallet_address'
 
 export function setWalletAddress(address: string): void {
-  localStorage.setItem(WALLET_ADDRESS_KEY, address)
+  safeLocalStorageSet(WALLET_ADDRESS_KEY, address)
 }
 
 export function getWalletAddress(): string | null {

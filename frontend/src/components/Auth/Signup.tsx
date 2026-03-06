@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import { clearProfileCache } from '../../utils/userProfileService'
+// Ensuring clean syntax to prevent Vite reload issues
 import RelaxConnectMatchCard from '../RelaxConnectMatchCard'
 import onboardingstock from '../../assets/onboardingstock.jpg'
 import { Link } from 'react-router-dom'
 import GoogleAuth from './third_party_auth/GoogleAuth'
 import { useAlert } from '../../hooks/useAlert'
 import { API_BASE_URL } from '../../config';
+import { safeLocalStorageSet } from '../../utils/storageUtils';
 import TermsModal from './TermsModal';
 
 type SignupStep = 'email' | 'otp' | 'password'
@@ -100,8 +102,13 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
 
     // Auto-focus next input
     if (value && index < 3) {
-      const nextInput = document.getElementById(`otp-${index + 1}`)
-      nextInput?.focus()
+      document.getElementById(`otp-${index + 1}`)?.focus()
+    }
+  }
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      document.getElementById(`otp-${index - 1}`)?.focus()
     }
   }
 
@@ -173,9 +180,12 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || 'Signup failed')
 
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      console.log('[Signup] Success! Clearing old caches...');
       clearProfileCache()
+
+      console.log('[Signup] Saving new session...');
+      safeLocalStorageSet('token', data.token);
+      safeLocalStorageSet('user', data.user);
 
       handleAuthSuccess()
     } catch (error: any) {
@@ -204,12 +214,12 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6">
-            <img src="/favicon.png" alt="Matchchayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-wider">MATCHCHAYN</h1>
+            <img src="/favicon.png" alt="MatchChayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-wider">MatchChayn</h1>
           </div>
 
           <div className="text-center mb-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Welcome to Matchchayn</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Welcome to MatchChayn</h2>
             <p className="text-gray-400 text-sm">Match with those who vibe on your frequency on-chain.</p>
           </div>
 
@@ -312,6 +322,7 @@ export default function Signup({ onSignupSuccess }: SignupProps) {
                     maxLength={1}
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
                     className="w-12 h-14 text-center text-2xl font-bold bg-transparent border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
                     disabled={isLoading}
                   />

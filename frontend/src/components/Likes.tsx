@@ -1,135 +1,132 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import Header from '../Home/Header'
-import Sidebar from './Sidebar'
-import { fetchLikedProfiles } from '../utils/likesHandler'
-import Stories from '../Home/Stories'
-import MobileBottomNav from './MobileBottomNav'
+import { API_BASE_URL } from '../config'
 
-interface LikesProps {
-  session: any
+interface LikedUser {
+  id: string
+  firstName: string
+  lastName: string
+  avatarUrl: string
+  city: string
+  age: number
+  likedAt: string
 }
 
-// Module-level cache
-let cachedLikedProfiles: any[] | null = null
-
-export default function Likes({ session }: LikesProps) {
-  const navigate = useNavigate()
-  const [likedProfiles, setLikedProfiles] = useState<any[]>(cachedLikedProfiles || [])
-  const [loading, setLoading] = useState(!cachedLikedProfiles)
+export default function Likes() {
+  const [likes, setLikes] = useState<LikedUser[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadLikedProfiles(cachedLikedProfiles ? true : false)
+    fetchLikes()
   }, [])
 
-  async function loadLikedProfiles(isSilent = false) {
+  const fetchLikes = async () => {
+    console.log('[Likes] Fetching from /api/user/likes...');
     try {
-      if (!isSilent) setLoading(true)
-      const profiles = await fetchLikedProfiles(session.token)
-      setLikedProfiles(profiles)
-      cachedLikedProfiles = profiles
-    } catch (error) {
-      console.error('Error loading liked profiles:', error)
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API_BASE_URL}/api/user/likes`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      if (!res.ok) {
+        console.error('[Likes] Backend returned error status:', res.status);
+        setLikes([])
+        return
+      }
+
+      const data = await res.json()
+      console.log('[Likes] Received count:', Array.isArray(data) ? data.length : 0);
+      
+      if (!Array.isArray(data)) {
+        console.error('[Likes] Expected array but got:', data);
+        setLikes([])
+        return
+      }
+
+      // Map backend fields to frontend expectations
+      const formatted = data.map((u: any) => {
+        // Calculate age from dateOfBirth
+        let age = u.age || 0;
+        if (u.dateOfBirth) {
+          const birthDate = new Date(u.dateOfBirth);
+          const today = new Date();
+          age = today.getFullYear() - birthDate.getFullYear();
+          const m = today.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+        }
+
+        return {
+          id: u.id || u._id || String(Math.random()),
+          firstName: u.firstName || 'Unknown',
+          lastName: u.lastName || '',
+          avatarUrl: u.avatarUrl || '',
+          city: u.city || '',
+          age: age,
+          likedAt: u.likedAt || new Date().toISOString()
+        }
+      })
+
+      setLikes(formatted)
+    } catch (err) {
+      console.error('[Likes] Critical error during fetch:', err)
+      setLikes([])
     } finally {
+      console.log('[Likes] Setting loading false');
       setLoading(false)
     }
   }
 
   return (
-    <>
-      <Sidebar />
-      <Header userId={session.user.id || session.user._id} isLoading={loading} />
-
-      <div className="min-h-screen bg-[#0a0a1f] pt-16 pb-28 lg:pb-8 lg:pl-64">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
-
-          {/* Stories section - below header */}
-          <div className="w-full bg-[#090a1e]/50 backdrop-blur-md border-b border-white/5 mb-8">
-            <Stories layout="mobile" />
+    <div className="flex-1 min-h-screen bg-[#090a1e]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24 pb-24">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Likes</h1>
+            <p className="text-gray-400 mt-1">People who liked your profile</p>
           </div>
-
-          {/* Header - Desktop Only */}
-          <div className="hidden lg:flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/')}
-                className="text-white hover:text-gray-300 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white">People You Liked</h1>
-            </div>
-            <p className="text-gray-400 text-sm">{likedProfiles.length} {likedProfiles.length === 1 ? 'profile' : 'profiles'}</p>
+          <div className="bg-purple-500/10 border border-purple-500/20 px-4 py-2 rounded-full">
+            <span className="text-purple-400 font-bold">{likes.length} Likes</span>
           </div>
+        </div>
 
-          {/* Liked Profiles Grid */}
-          {likedProfiles.length === 0 ? (
-            <div className="text-center py-12 sm:py-20 px-4">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 p-4">
-                <img
-                  src="/matchlogo.png"
-                  alt=""
-                  className="w-full h-full object-contain brightness-0 invert opacity-40"
-                />
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">No likes yet</h2>
-              <p className="text-gray-400 text-sm sm:text-base mb-4 sm:mb-6">Start liking profiles to see them here!</p>
-              <button
-                onClick={() => navigate('/')}
-                className="px-5 sm:px-6 py-2.5 sm:py-3 bg-purple-600 hover:bg-purple-700 text-white text-sm sm:text-base font-medium rounded-full transition-colors"
-              >
-                Start Exploring
-              </button>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : likes.length === 0 ? (
+          <div className="text-center py-20 bg-[#1a1a2e]/30 rounded-3xl border border-white/5">
+            <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-purple-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
-              {likedProfiles.map((profile) => (
-                <div
-                  key={profile.id}
-                  className="bg-[#1a1a2e] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
-                >
-                  {/* Profile Image */}
-                  <div className="relative aspect-[3/4] overflow-hidden">
-                    {profile.avatarUrl ? (
-                      <>
-                        <img
-                          src={profile.avatarUrl}
-                          alt={profile.firstName}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        {/* Gradient Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
-                      </>
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                        <svg className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      </div>
-                    )}
-
-                    {/* Info Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3">
-                      <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5">
-                        <h3 className="text-white text-sm sm:text-base lg:text-lg font-bold truncate">
-                          {profile.firstName}
-                        </h3>
-                      </div>
-                      <p className="text-white/80 text-[10px] sm:text-xs flex items-center gap-0.5 sm:gap-1 truncate">
-                        <span className="truncate">{profile.city}</span>
-                      </p>
-                    </div>
+            <h3 className="text-white text-xl font-bold mb-2">No likes yet</h3>
+            <p className="text-gray-500 max-w-xs mx-auto text-sm">Keep active on MatchChayn to get more visibility and likes!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {likes.map((user) => (
+              <div key={user.id} className="bg-[#0d0e24] rounded-2xl overflow-hidden border border-white/5 hover:border-purple-500/30 transition-all group">
+                <div className="aspect-[4/5] relative">
+                  <img
+                    src={user.avatarUrl || '/placeholder-avatar.png'}
+                    alt={user.firstName}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <h3 className="text-white font-bold truncate">{user.firstName}, {user.age}</h3>
+                    <p className="text-gray-300 text-xs truncate">{user.city}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      <MobileBottomNav />
-    </>
+    </div>
   )
 }

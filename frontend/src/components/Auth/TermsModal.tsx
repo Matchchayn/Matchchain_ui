@@ -32,7 +32,7 @@ export default function TermsModal({ isOpen, onClose, onAccept }: TermsModalProp
                 <div className="p-6 overflow-y-auto flex-1 space-y-6 text-gray-300 text-sm leading-relaxed">
                     <section>
                         <h3 className="text-lg font-bold text-white mb-2">1. Acceptance of Terms</h3>
-                        <p>By accessing and using Matchchayn, you confirm that you are at least 18 years old and legally permitted to enter into this agreement. Matchchayn is a blockchain-based dating platform designed to foster meaningful connections.</p>
+                        <p>By accessing and using MatchChayn, you confirm that you are at least 18 years old and legally permitted to enter into this agreement. MatchChayn is a blockchain-based dating platform designed to foster meaningful connections.</p>
                     </section>
 
                     <section>
@@ -47,17 +47,17 @@ export default function TermsModal({ isOpen, onClose, onAccept }: TermsModalProp
 
                     <section>
                         <h3 className="text-lg font-bold text-white mb-2">4. Content Ownership</h3>
-                        <p>You retain ownership of the content you post. However, by uploading content (photos, videos, bios), you grant Matchchayn a worldwide, royalty-free license to use, display, and distribute said content strictly for the operational purposes of the platform.</p>
+                        <p>You retain ownership of the content you post. However, by uploading content (photos, videos, bios), you grant MatchChayn a worldwide, royalty-free license to use, display, and distribute said content strictly for the operational purposes of the platform.</p>
                     </section>
 
                     <section>
                         <h3 className="text-lg font-bold text-white mb-2">5. Matches & Premium Features</h3>
-                        <p>Certain features may require the use of tokens (e.g., SOL or internal platform assets). All on-chain transactions are final and non-refundable. Matchchayn makes no guarantees regarding the frequency or quality of matches.</p>
+                        <p>Certain features may require the use of tokens (e.g., SOL or internal platform assets). All on-chain transactions are final and non-refundable. MatchChayn makes no guarantees regarding the frequency or quality of matches.</p>
                     </section>
 
                     <section>
                         <h3 className="text-lg font-bold text-white mb-2">6. Limitation of Liability</h3>
-                        <p>Matchchayn is not responsible for the conduct of any user on or off the platform. We do not conduct criminal background checks. You agree to use caution in all interactions with other users, particularly if deciding to meet offline.</p>
+                        <p>MatchChayn is not responsible for the conduct of any user on or off the platform. We do not conduct criminal background checks. You agree to use caution in all interactions with other users, particularly if deciding to meet offline.</p>
                     </section>
                 </div>
 

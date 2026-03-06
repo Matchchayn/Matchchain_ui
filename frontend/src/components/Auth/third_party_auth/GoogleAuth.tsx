@@ -2,6 +2,7 @@ import { useGoogleLogin } from '@react-oauth/google'
 import { clearProfileCache } from '../../../utils/userProfileService'
 import { useAlert } from '../../../hooks/useAlert'
 import { API_BASE_URL } from '../../../config';
+import { safeLocalStorageSet } from '../../../utils/storageUtils';
 
 interface GoogleAuthProps {
     onSuccess: () => void
@@ -27,8 +28,8 @@ export default function GoogleAuth({ onSuccess, setIsLoading, onBeforeLogin }: G
                 const data = await response.json()
                 if (!response.ok) throw new Error(data.message || 'Google login failed')
 
-                localStorage.setItem('token', data.token)
-                localStorage.setItem('user', JSON.stringify(data.user))
+                safeLocalStorageSet('token', data.token)
+                safeLocalStorageSet('user', data.user)
                 clearProfileCache()
 
                 showAlert('Google login successful', 'success')

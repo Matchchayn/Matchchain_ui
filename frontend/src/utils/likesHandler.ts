@@ -38,7 +38,10 @@ export async function fetchLikes(token: string) {
     const response = await fetch(`${API_BASE_URL}/api/user/likes`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!response.ok) throw new Error('Failed to fetch likes');
+    if (!response.ok) {
+      console.error(`fetchLikes failed with status: ${response.status}`);
+      throw new Error('Failed to fetch likes');
+    }
     return await response.json();
   } catch (error) {
     console.error('Error fetching likes:', error)
@@ -54,7 +57,10 @@ export async function fetchLikedProfiles(token: string) {
     const response = await fetch(`${API_BASE_URL}/api/user/liked-profiles`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!response.ok) throw new Error('Failed to fetch liked profiles');
+    if (!response.ok) {
+      console.error(`fetchLikedProfiles failed with status: ${response.status}`);
+      throw new Error('Failed to fetch liked profiles');
+    }
     const data = await response.json();
 
     // Map backend fields to the common UserProfile format
@@ -81,7 +87,10 @@ export async function fetchMatches(token: string) {
     const response = await fetch(`${API_BASE_URL}/api/user/matches`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!response.ok) throw new Error('Failed to fetch matches');
+    if (!response.ok) {
+      console.error(`fetchMatches failed with status: ${response.status}`);
+      throw new Error('Failed to fetch matches');
+    }
     return await response.json();
   } catch (error) {
     console.error('Error fetching matches:', error)

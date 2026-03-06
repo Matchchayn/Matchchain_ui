@@ -16,7 +16,7 @@ export default function Navigation() {
     <nav className="sticky top-24 space-y-2">
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-3 mb-6">
-        <img src="/favicon.png" alt="Matchchayn" className="w-6 h-6 object-contain" />
+        <img src="/favicon.png" alt="MatchChayn" className="w-6 h-6 object-contain" />
         <span className="text-white font-bold text-lg">MatchChayn</span>
       </div>
 
@@ -36,8 +36,8 @@ export default function Navigation() {
       </button>
 
       <button
-        onClick={() => navigate('/likes')}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${isActive('/likes') ? 'text-purple-400' : 'text-white/60 hover:text-white'
+        onClick={() => navigate('/matches')}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${isActive('/matches') || isActive('/likes') ? 'text-purple-400' : 'text-white/60 hover:text-white'
           }`}
       >
         {isActive('/likes') && (

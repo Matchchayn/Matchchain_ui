@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import RelaxConnectMatchCard from '../RelaxConnectMatchCard'
+// Ensuring clean syntax
 import { Link } from 'react-router-dom'
 import { API_BASE_URL } from '../../config';
 
@@ -92,6 +93,12 @@ export default function ForgotPassword() {
     }
   }
 
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      document.getElementById(`otp-${index - 1}`)?.focus()
+    }
+  }
+
   const handleOtpVerify = (e: React.FormEvent) => {
     e.preventDefault()
     if (otp.join('').length === 4) {
@@ -146,8 +153,8 @@ export default function ForgotPassword() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-6">
-            <img src="/favicon.png" alt="Matchchayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-            <h1 className="text-2xl font-bold text-white uppercase tracking-wider">Matchchayn</h1>
+            <img src="/favicon.png" alt="MatchChayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+            <h1 className="text-2xl font-bold text-white tracking-wider">MatchChayn</h1>
           </div>
 
           {step === 'email' && (
@@ -197,6 +204,7 @@ export default function ForgotPassword() {
                     maxLength={1}
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
                     className="w-12 h-14 text-center text-2xl font-bold bg-transparent border border-purple-500/30 rounded-lg text-white focus:outline-none focus:border-purple-500"
                     required
                   />

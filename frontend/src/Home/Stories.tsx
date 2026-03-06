@@ -1,32 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { API_BASE_URL } from '../config';
+
 import { useAlert } from '../hooks/useAlert';
-
-interface StatusUser {
-  _id: string
-  firstName: string
-  lastName: string
-  avatarUrl: string | null
-}
-
-interface Status {
-  _id: string
-  user: StatusUser
-  imageUrl: string
-  text?: string
-  createdAt: string
-}
+import { storiesService } from '../utils/storiesService'
+import type { Status } from '../utils/storiesService'
 
 interface StoriesProps {
   layout?: 'sidebar' | 'banner' | 'mobile'
 }
 
-// Module-level cache to persist across navigations and refreshes
-let cachedStatuses: Status[] | null = null
 
 export default function Stories({ layout = 'mobile' }: StoriesProps) {
-  const [statuses, setStatuses] = useState<Status[]>(cachedStatuses || [])
+  const [statuses, setStatuses] = useState<Status[]>(storiesService.getStories())
   const [uploading, setUploading] = useState(false)
   const [viewingStatus, setViewingStatus] = useState<Status[] | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -39,18 +25,11 @@ export default function Stories({ layout = 'mobile' }: StoriesProps) {
   const fetchStatuses = async () => {
     const token = localStorage.getItem('token')
     if (!token) return
-
     try {
-      const res = await fetch(`${API_BASE_URL}/api/status/feed`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setStatuses(data)
-        cachedStatuses = data
-      }
-    } catch (err) {
-      console.error('Error fetching statuses:', err)
+      const data = await storiesService.fetchStories(token)
+      setStatuses(data)
+    } catch (err: any) {
+      console.error('Stories - Error:', err.message)
     }
   }
 
@@ -69,17 +48,48 @@ export default function Stories({ layout = 'mobile' }: StoriesProps) {
       const promptResult = window.prompt('Add a caption to your status (optional):')
       const caption = promptResult || '' // Ensure it's never null (if cancelled)
 
-      showAlert('Saving status to Matchchayn Database...', 'info')
+      showAlert('Saving status to MatchChayn Database...', 'info')
 
-      // Convert to Base64
-      const reader = new FileReader()
-      const base64Promise = new Promise((resolve, reject) => {
-        reader.onload = () => resolve(reader.result)
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
+      // Convert to Base64 and compress
+      const compressImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target?.result as string;
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 800;
+              const MAX_HEIGHT = 800;
+              let width = img.width;
+              let height = img.height;
 
-      const base64String = await base64Promise as string
+              if (width > height) {
+                if (width > MAX_WIDTH) {
+                  height *= MAX_WIDTH / width;
+                  width = MAX_WIDTH;
+                }
+              } else {
+                if (height > MAX_HEIGHT) {
+                  width *= MAX_HEIGHT / height;
+                  height = MAX_HEIGHT;
+                }
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.7)); // Compress to 70% quality
+            };
+            img.onerror = reject;
+          };
+          reader.onerror = reject;
+        });
+      };
+
+      const base64String = await compressImage(file);
 
       const saveRes = await fetch(`${API_BASE_URL}/api/status`, {
         method: 'POST',
@@ -108,12 +118,20 @@ export default function Stories({ layout = 'mobile' }: StoriesProps) {
   }
 
   const groupedStatuses = statuses.reduce((acc: { [key: string]: Status[] }, status) => {
-    const userId = status.user?._id
-    if (!userId) return acc
-    if (!acc[userId]) acc[userId] = []
-    acc[userId].push(status)
-    return acc
-  }, {})
+    // Robust userId check: try _id then id, handles populated or unpopulated
+    const userId = (typeof status.user === 'object' && status.user !== null)
+      ? (status.user._id || (status.user as any).id)
+      : (status.user as unknown as string);
+
+    if (!userId) {
+      console.warn('Stories - Status item has no valid userId:', status);
+      return acc;
+    }
+
+    if (!acc[userId]) acc[userId] = [];
+    acc[userId].push(status);
+    return acc;
+  }, {});
 
   const usersWithStatus = Object.values(groupedStatuses).map(userStatuses => ({
     user: (userStatuses as Status[])[0].user,

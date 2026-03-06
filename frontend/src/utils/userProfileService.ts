@@ -1,12 +1,27 @@
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from '../config'
+import { safeLocalStorageSet } from './storageUtils';;
 // A simple cache to avoid fetching the profile multiple times concurrently
 let profilePromise: Promise<any> | null = null;
 let profileCache: any = null;
 
+const STORAGE_KEY = 'user';
+
+export const getCachedProfile = () => {
+    if (profileCache) return profileCache;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+        try {
+            profileCache = JSON.parse(stored);
+            return profileCache;
+        } catch (e) { }
+    }
+    return null;
+};
+
 export const fetchUserProfile = async (token: string, forceRefresh = false) => {
     if (!token) return null;
 
-    if (profileCache && !forceRefresh) {
+    if (profileCache && !forceRefresh && profileCache.avatarUrl !== null) {
         return profileCache;
     }
 
@@ -23,6 +38,7 @@ export const fetchUserProfile = async (token: string, forceRefresh = false) => {
             }
             const data = await res.json();
             profileCache = data; // store the cache
+            safeLocalStorageSet(STORAGE_KEY, data);
             return data;
         })
         .catch((err) => {
@@ -36,4 +52,5 @@ export const fetchUserProfile = async (token: string, forceRefresh = false) => {
 export const clearProfileCache = () => {
     profileCache = null;
     profilePromise = null;
+    localStorage.removeItem(STORAGE_KEY);
 };

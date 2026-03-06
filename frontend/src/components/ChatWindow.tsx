@@ -4,7 +4,8 @@ import EmojiPicker, { Theme } from 'emoji-picker-react'
 import { socketService } from '../utils/socketService'
 import CallScreen from './Call/CallScreen'
 import { useAlert } from '../hooks/useAlert'
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from '../config'
+import { safeLocalStorageSet } from '../utils/storageUtils'
 
 interface Message {
   id: string
@@ -23,16 +24,28 @@ interface ChatWindowProps {
   onBack: () => void
 }
 
+const messageCache: Record<string, Message[]> = {};
+
 export default function ChatWindow({ conversationId, currentUserId, otherUser: initialOtherUser, onBack }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>(() => {
-    const cached = localStorage.getItem(`msgs_${conversationId}`)
-    return cached ? JSON.parse(cached) : []
-  })
-  const [newMessage, setNewMessage] = useState('')
-  const [otherUser, setOtherUser] = useState<any>(initialOtherUser)
+    if (messageCache[conversationId]) return messageCache[conversationId];
+    try {
+      const cached = localStorage.getItem(`msgs_${conversationId}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        messageCache[conversationId] = parsed;
+        return parsed;
+      }
+      return [];
+    } catch { return []; }
+  });
+  const [newMessage, setNewMessage] = useState('');
+  const [otherUser, setOtherUser] = useState<any>(initialOtherUser);
   const [isInitialLoading, setIsInitialLoading] = useState(() => {
-    return !localStorage.getItem(`msgs_${conversationId}`)
-  })
+    try {
+      return !localStorage.getItem(`msgs_${conversationId}`);
+    } catch { return true; }
+  });
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
@@ -94,11 +107,11 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
 
           setMessages(prev => {
             // Prevent duplicates
-            if (prev.some(m => m.id === newMessage.id)) return prev
-            const updated = [...prev, newMessage]
-            localStorage.setItem(`msgs_${conversationId}`, JSON.stringify(updated))
-            return updated
-          })
+            if (prev.some(m => m.id === newMessage.id)) return prev;
+            const updatedMessages = [...prev, newMessage];
+            safeLocalStorageSet(`msgs_${conversationId}`, updatedMessages, 50);
+            return updatedMessages;
+          });
 
           // Mark as read if it's from the other user
           if (data.sender === initialOtherUser.id) {
@@ -118,8 +131,16 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
     }
     document.addEventListener('mousedown', handleClickOutside)
 
-    const hasCache = !!localStorage.getItem(`msgs_${conversationId}`)
-    fetchMessages(!hasCache)
+    let hasCache = false;
+    if (messageCache[conversationId] && messageCache[conversationId].length > 0) {
+      hasCache = true;
+    } else {
+      try {
+        hasCache = !!localStorage.getItem(`msgs_${conversationId}`);
+      } catch { /* ignore */ }
+    }
+
+    fetchMessages(!hasCache);
 
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
@@ -142,13 +163,25 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
   }, [isOtherUserTyping])
 
   async function fetchMessages(isInitial = false) {
+    console.log(`[ChatWindow] fetchMessages started - isInitial: ${isInitial}, otherUserId: ${otherUser?.id}`);
     try {
-      if (isInitial) setIsInitialLoading(true)
-      const token = localStorage.getItem('token')
+      if (isInitial) setIsInitialLoading(true);
+      const token = localStorage.getItem('token');
+
+      console.log(`[ChatWindow] fetching from: ${API_BASE_URL}/api/messages/${otherUser.id}`);
       const res = await fetch(`${API_BASE_URL}/api/messages/${otherUser.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
-      })
-      const data = await res.json()
+      });
+      console.log(`[ChatWindow] fetch status: ${res.status}`);
+
+      const data = await res.json();
+      console.log(`[ChatWindow] data from backend:`, Array.isArray(data) ? `Array of length ${data.length}` : data);
+
+      if (!Array.isArray(data)) {
+        console.error('[ChatWindow] data is not an array, handling gracefully...');
+        setMessages([]);
+        return;
+      }
 
       const formattedMessages: Message[] = data.map((msg: any) => ({
         id: msg._id,
@@ -160,23 +193,19 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
         isUploading: false
       }))
 
-      setMessages(prev => {
-        if (JSON.stringify(prev) === JSON.stringify(formattedMessages)) return prev
+      setMessages(formattedMessages);
 
-        // Mark as read if there are new unread messages from the other user
-        const hasUnread = formattedMessages.some(m => m.sender_id !== currentUserId && !m.is_read)
-        if (hasUnread) {
-          markAsRead()
-        }
-
-        // Save to cache
-        localStorage.setItem(`msgs_${conversationId}`, JSON.stringify(formattedMessages))
-        return formattedMessages
-      })
+      // Save to cache robustly
+      safeLocalStorageSet(`msgs_${conversationId}`, formattedMessages, 50);
+      messageCache[conversationId] = formattedMessages;
     } catch (error) {
-      console.error('Error fetching messages:', error)
+      console.error('[ChatWindow] Error fetching messages:', error);
     } finally {
-      if (isInitial) setIsInitialLoading(false)
+      console.log('[ChatWindow] fetchMessages finally block. isInitial:', isInitial);
+      if (isInitial) {
+        console.log('[ChatWindow] setting isInitialLoading to FALSE');
+        setIsInitialLoading(false);
+      }
     }
   }
 
@@ -254,6 +283,7 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
       setMessages(prev => prev.filter(m => m.id !== tempId))
     } finally {
       setSending(false)
+      setIsInitialLoading(false) // Safety stop for any hanging spinners
     }
   }
 
@@ -445,10 +475,11 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
       if (!res.ok) throw new Error('Failed to delete message')
 
       // Remove from state immediately
-      setMessages(prev => prev.filter(m => m.id !== messageId))
-      // Update cache
-      const updatedMessages = messages.filter(m => m.id !== messageId)
-      localStorage.setItem(`msgs_${conversationId}`, JSON.stringify(updatedMessages))
+      setMessages(prev => {
+        const updated = prev.filter(m => m.id !== messageId);
+        safeLocalStorageSet(`msgs_${conversationId}`, updated, 50);
+        return updated;
+      });
 
     } catch (error) {
       console.error('Error deleting message:', error)
@@ -671,9 +702,16 @@ export default function ChatWindow({ conversationId, currentUserId, otherUser: i
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-[#0a0a1f] to-[#1a1a2e]">
-        {isInitialLoading && messages.length === 0 ? (
+        {/* Debug block temporarily visible in DOM */}
+        <div style={{ display: 'none' }} data-is-loading={isInitialLoading} data-msg-count={messages?.length || 0}></div>
+
+        {isInitialLoading && (!messages || messages.length === 0) ? (
           <div className="flex items-center justify-center h-full">
             <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (!messages || messages.length === 0) ? (
+          <div className="flex items-center justify-center h-full text-gray-400">
+            No messages yet. Send a message to start the conversation!
           </div>
         ) : (
           Object.entries(messageGroups).map(([date, msgs]) => (

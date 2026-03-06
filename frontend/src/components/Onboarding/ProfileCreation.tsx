@@ -113,8 +113,8 @@ export default function ProfileCreation({ session, onComplete, onBack }: Profile
         <div className="w-full max-w-md mx-auto px-4 py-8">
           {/* Logo */}
           <div className="flex items-center justify-center gap-2 mb-6">
-            <img src="/favicon.png" alt="Matchchayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
-            <h1 className="text-2xl font-bold tracking-widest uppercase">MATCHCHAYN</h1>
+            <img src="/favicon.png" alt="MatchChayn" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+            <h1 className="text-2xl font-bold tracking-widest">MatchChayn</h1>
           </div>
 
           {/* Progress */}

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import WalletButton from '../components/WalletButton'
-import { fetchUserProfile } from '../utils/userProfileService'
+import { fetchUserProfile, getCachedProfile } from '../utils/userProfileService'
 import NotificationModal from '../components/NotificationModal'
 import { useAlert } from '../hooks/useAlert'
 import { API_BASE_URL } from '../config';
@@ -15,14 +15,14 @@ interface HeaderProps {
   isLoading?: boolean
 }
 
-const userDataCache = new Map<string, { avatarUrl: string | null }>()
-
 export default function Header({ userId, isLoading }: HeaderProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { publicKey, connected } = useWallet()
   const { connection } = useConnection()
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
+    return getCachedProfile()?.avatarUrl || null;
+  })
   const [balance, setBalance] = useState<number>(0)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
@@ -62,19 +62,27 @@ export default function Header({ userId, isLoading }: HeaderProps) {
 
   useEffect(() => {
     const token = localStorage.getItem('token')
-    if (token && !hasFetched.current) {
-      fetchUserAvatar()
+    if (token) {
+      const cached = getCachedProfile();
+      if (cached) {
+        setAvatarUrl(cached.avatarUrl || null);
+        // If we have a cache, still fetch in the background to keep it fresh, 
+        // but only if we haven't fetched in this component lifecycle yet.
+        if (!hasFetched.current) {
+          fetchUserAvatar(token);
+        }
+      } else {
+        fetchUserAvatar(token);
+      }
     }
   }, [userId])
 
-  const fetchUserAvatar = async () => {
+  const fetchUserAvatar = async (token: string) => {
+    if (hasFetched.current) return;
     try {
-      const token = localStorage.getItem('token')
-      if (!token) return
       const data = await fetchUserProfile(token)
       if (data) {
         setAvatarUrl(data.avatarUrl || null)
-        if (userId) userDataCache.set(userId, { avatarUrl: data.avatarUrl || null })
         hasFetched.current = true
       }
     } catch (err) { }
@@ -143,8 +151,8 @@ export default function Header({ userId, isLoading }: HeaderProps) {
 
               {/* Logo */}
               <div className="flex items-center gap-2">
-                <img src="/matchlogo.png" alt="Matchchayn" className="w-8 h-8 object-contain" />
-                <h1 className="text-xl sm:text-2xl font-bold text-white uppercase tracking-wider italic">MatchChayn</h1>
+                <img src="/matchlogo.png" alt="MatchChayn" className="w-8 h-8 object-contain" />
+                <h1 className="text-xl sm:text-2xl font-bold text-white tracking-wider">MatchChayn</h1>
               </div>
               {/* Mobile Spinner */}
               {isLoading && (
@@ -192,11 +200,15 @@ export default function Header({ userId, isLoading }: HeaderProps) {
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   className="flex items-center gap-2 hover:bg-purple-600/20 rounded-full pr-3 transition-colors"
                 >
-                  <div className="w-10 h-10 rounded-full overflow-hidden">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-purple-600/20">
                     {avatarUrl ? (
-                      <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                      <img 
+                        src={avatarUrl} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover" 
+                      />
                     ) : (
-                      <div className="w-full h-full bg-purple-600/20 flex items-center justify-center">
+                      <div className="w-full h-full flex items-center justify-center">
                         <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
@@ -247,8 +259,8 @@ export default function Header({ userId, isLoading }: HeaderProps) {
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-5 border-b border-purple-500/10">
               <div className="flex items-center gap-2.5">
-                <img src="/matchlogo.png" alt="Matchchayn" className="w-7 h-7 object-contain" />
-                <span className="text-white font-bold text-xl uppercase tracking-wider italic">MatchChayn</span>
+                <img src="/matchlogo.png" alt="MatchChayn" className="w-7 h-7 object-contain" />
+                <span className="text-white font-bold text-xl tracking-wider">MatchChayn</span>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
@@ -263,11 +275,15 @@ export default function Header({ userId, isLoading }: HeaderProps) {
             {/* User profile mini card */}
             <div className="px-5 py-4 border-b border-purple-500/10">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-purple-500/30">
+                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-purple-500/30 bg-purple-600/20">
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                    <img 
+                      src={avatarUrl} 
+                      alt="" 
+                      className="w-full h-full object-cover" 
+                    />
                   ) : (
-                    <div className="w-full h-full bg-purple-600/20 flex items-center justify-center">
+                    <div className="w-full h-full flex items-center justify-center">
                       <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>

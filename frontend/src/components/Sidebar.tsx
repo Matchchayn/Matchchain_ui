@@ -16,8 +16,8 @@ export default function Sidebar() {
     <aside className="hidden lg:flex fixed left-0 top-[var(--connectivity-height,0px)] h-[calc(100vh-var(--connectivity-height,0px))] w-64 bg-[#090a1e] border-r border-purple-500/10 flex-col z-40 transition-all duration-300">
       {/* Logo */}
       <div className="flex items-center gap-2 px-6 py-6">
-        <img src="/matchlogo.png" alt="Matchchayn" className="w-9 h-9 object-contain" />
-        <span className="text-white font-bold text-2xl uppercase tracking-wider italic">MatchChayn</span>
+        <img src="/matchlogo.png" alt="MatchChayn" className="w-9 h-9 object-contain" />
+        <span className="text-white font-bold text-2xl tracking-wider">MatchChayn</span>
       </div>
 
       {/* Navigation Items */}
@@ -35,17 +35,17 @@ export default function Sidebar() {
         </button>
 
         <button
-          onClick={() => navigate('/likes')}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${isActive('/likes') ? 'text-purple-400' : 'text-gray-400 hover:text-white'
+          onClick={() => navigate('/matches')}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${isActive('/matches') || isActive('/likes') ? 'text-purple-400' : 'text-gray-400 hover:text-white'
             }`}
         >
-          {isActive('/likes') && (
+          { (isActive('/matches') || isActive('/likes')) && (
             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 bg-purple-500 rounded-r-full"></div>
           )}
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
           </svg>
-          <span className="font-medium">Likes</span>
+          <span className="font-medium">Likes & Matches</span>
         </button>
 
         <button

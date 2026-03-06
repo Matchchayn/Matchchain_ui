@@ -37,24 +37,27 @@ export default function NotificationModal({ isOpen, onClose, token }: Notificati
 
     const fetchNotifications = async () => {
         try {
-            if (!cachedNotifications) setLoading(true)
+            // Only show spinner if we have absolutely nothing to show
+            if (!cachedNotifications || cachedNotifications.length === 0) {
+                setLoading(true)
+            }
+
             const res = await fetch(`${API_BASE_URL}/api/notifications`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
 
             if (!res.ok) {
-                console.error(`Notification API error (${res.status})`)
                 setLoading(false)
                 return
             }
 
             const data = await res.json()
-            // Filter out notifications where sender was deleted
             const valid = data.filter((n: any) => n.sender && n.sender.firstName)
+
             setNotifications(valid)
             cachedNotifications = valid
 
-            // Mark as read
+            // Mark as read in background
             if (valid.length > 0 && valid.some((n: any) => !n.isRead)) {
                 fetch(`${API_BASE_URL}/api/notifications/read`, {
                     method: 'POST',
@@ -62,7 +65,8 @@ export default function NotificationModal({ isOpen, onClose, token }: Notificati
                 }).catch(() => { })
             }
         } catch (err) {
-            console.error('Error in fetchNotifications:', err)
+            // Silently fail if we have cache, otherwise log
+            if (!cachedNotifications) console.error('Error in fetchNotifications:', err)
         } finally {
             setLoading(false)
         }
@@ -70,11 +74,8 @@ export default function NotificationModal({ isOpen, onClose, token }: Notificati
 
     const handleDeleteNotification = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation()
-        const deleteUrl = `${API_BASE_URL}/api/notifications/${id}`;
-        console.log(`🗑️ Attempting to delete notification: ${id} at ${deleteUrl}`);
-
         try {
-            const res = await fetch(deleteUrl, {
+            const res = await fetch(`${API_BASE_URL}/api/notifications/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -82,23 +83,16 @@ export default function NotificationModal({ isOpen, onClose, token }: Notificati
                 }
             })
 
-            const responseData = await res.json().catch(() => ({}));
-            console.log(`📡 Delete response status: ${res.status}`, responseData);
-
             if (res.ok) {
                 const updated = notifications.filter(n => n._id !== id)
                 setNotifications(updated)
                 cachedNotifications = updated
-                console.log(`✅ Notification ${id} deleted successfully from UI`);
             } else {
-                console.error(`❌ Delete failed:`, responseData);
-                const errorMsg = responseData.details
-                    ? `${responseData.message} (${responseData.details})`
-                    : (responseData.message || 'Server error');
+                const responseData = await res.json().catch(() => ({}));
+                const errorMsg = responseData.message || 'Server error';
                 showAlert(`Failed to delete: ${errorMsg}`, 'error');
             }
         } catch (err: any) {
-            console.error('🔥 Error in handleDeleteNotification:', err)
             showAlert(`Network error: ${err.message}`, 'error');
         }
     }
