@@ -39,7 +39,7 @@ export const fetchEvents = async (token: string, forceRefresh = false) => {
     return eventsPromise;
 };
 
-export const fetchEventDetails = async (token: string, id: string, forceRefresh = false) => {
+export const fetchEventDetails = async (token: string, id: string, _forceRefresh = false) => {
     if (!token || !id) return null;
 
     // Optional: We could cache individual event details as well, but for now let's just use the same logic

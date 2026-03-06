@@ -31,10 +31,10 @@ interface ProfileSettingsProps {
   user: any
 }
 
-export default function ProfileSettings({ user }: ProfileSettingsProps) {
+export default function ProfileSettings({ user: _user }: ProfileSettingsProps) {
   const navigate = useNavigate()
 
-  const [loading, setLoading] = useState(true)
+  const [_loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
