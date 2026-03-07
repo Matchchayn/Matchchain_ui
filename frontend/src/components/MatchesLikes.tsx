@@ -33,28 +33,64 @@ function AvatarCard({ src, name, className }: { src?: string | null; name?: stri
 export default function MatchesLikes({ session }: { session: any }) {
   const navigate = useNavigate()
   const { showAlert } = useAlert()
-  // Don't pre-load from localStorage — signed URLs expire and cause broken images.
-  // Always start empty so the fresh signed URLs from the backend are fetched immediately.
+
+  // Hydrate immediately after hard refresh using persisted lists.
+  // Signed URLs may be stale; AvatarCard falls back to initials and we refresh in background.
+  const getUserId = () => {
+    const sid = session?.user?.id || session?.user?._id
+    if (sid) return String(sid)
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}')
+      return String(u.id || u._id || '')
+    } catch {
+      return ''
+    }
+  }
+
+  const readPersisted = (key: string) => {
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) return []
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  const uid = getUserId()
+  const persistedMatches = uid ? readPersisted(`matches_${uid}`) : []
+  const persistedLikes = uid ? readPersisted(`likes_received_${uid}`) : []
+  const persistedSent = uid ? readPersisted(`likes_sent_${uid}`) : []
+
   const [matches, setMatches] = useState<any[]>(() => {
-    const c = getMatchesCache();
-    return c ? c.map((u:any) => ({...u, id: String(u._id || u.id)})) : [];
+    const c = getMatchesCache() || persistedMatches
+    return (c || []).map((u: any) => ({ ...u, id: String(u._id || u.id) }))
   })
   const [likes, setLikes] = useState<any[]>(() => {
-    const c = getLikesCache();
-    return c ? c.map((u:any) => ({...u, id: String(u._id || u.id)})) : [];
+    const c = getLikesCache() || persistedLikes
+    return (c || []).map((u: any) => ({ ...u, id: String(u._id || u.id) }))
   })
   const [liked, setLiked] = useState<any[]>(() => {
-    const c = getLikedProfilesCache();
-    return c ? c.map((u:any) => ({...u, id: String(u._id || u.id)})) : [];
+    const c = getLikedProfilesCache() || persistedSent
+    return (c || []).map((u: any) => ({ ...u, id: String(u._id || u.id) }))
   })
-  const hasCachedData = () => !!(getMatchesCache()?.length || getLikesCache()?.length || getLikedProfilesCache()?.length)
-  const [loading, setLoading] = useState(() => !hasCachedData())
+  const hasAnyData = () =>
+    !!(
+      getMatchesCache()?.length ||
+      getLikesCache()?.length ||
+      getLikedProfilesCache()?.length ||
+      persistedMatches.length ||
+      persistedLikes.length ||
+      persistedSent.length
+    )
+  const [loading, setLoading] = useState(() => !hasAnyData())
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'matches' | 'sent' | 'received'>('matches')
 
   useEffect(() => {
     // When returning from Messages tab, show cached data and refresh in background (no spinner).
-    fetchData(hasCachedData())
+    fetchData(hasAnyData())
   }, [])
 
   const fetchData = async (isSilent = false) => {
