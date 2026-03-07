@@ -173,6 +173,15 @@ export default function Home({ session }: any) {
                       <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
                     </div>
                   )}
+                  {!videoReady && !videoError && (
+                    <button
+                      onClick={() => setVideoError(true)}
+                      className="absolute bottom-4 right-4 z-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white text-[10px] font-black tracking-widest px-3 py-2 rounded-full border border-white/15 transition-all active:scale-95"
+                      title="Skip video"
+                    >
+                      SKIP VIDEO
+                    </button>
+                  )}
                   <video
                     ref={videoRef}
                     key={users[currentIndex].id}
