@@ -204,18 +204,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </div>
           </div>
 
-          {/* Emergency Cache Clear */}
-          <div className="mt-8 pt-6 border-t border-white/5 text-center">
-            <button
-              onClick={() => {
-                localStorage.clear();
-                window.location.reload();
-              }}
-              className="text-[10px] text-gray-600 hover:text-purple-400 uppercase tracking-widest transition-colors"
-            >
-              Reset App Cache (Emergency)
-            </button>
-          </div>
 
         </div>
       </div>
