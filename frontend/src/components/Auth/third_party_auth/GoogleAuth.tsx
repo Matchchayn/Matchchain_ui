@@ -28,9 +28,9 @@ export default function GoogleAuth({ onSuccess, setIsLoading, onBeforeLogin }: G
                 const data = await response.json()
                 if (!response.ok) throw new Error(data.message || 'Google login failed')
 
+                clearProfileCache()
                 safeLocalStorageSet('token', data.token)
                 safeLocalStorageSet('user', data.user)
-                clearProfileCache()
 
                 showAlert('Google login successful', 'success')
                 onSuccess()

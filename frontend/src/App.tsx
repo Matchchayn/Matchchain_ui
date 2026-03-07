@@ -63,12 +63,8 @@ export default function App() {
     if (!token || !userStr) return true; // No session, show login instantly
 
     const isSignupFlow = localStorage.getItem('isSignupFlow') === 'true';
-    const uStr = localStorage.getItem('user');
-    let uStatus = null;
-    if (uStr) try { uStatus = JSON.parse(uStr).onboardingStatus; } catch (e) { }
-
-    // Force onboarding if status is incomplete, even if signup flag is missing
-    const isIncomplete = (uStatus && uStatus !== 'completed' && uStatus !== 'media_uploaded') || isSignupFlow;
+    // Only force onboarding if explicitly in signup flow
+    const isIncomplete = isSignupFlow;
 
     if (!isIncomplete) return true; // Safe to show home
 
@@ -129,8 +125,8 @@ export default function App() {
 
         const isSignupFlow = localStorage.getItem('isSignupFlow') === 'true';
 
-        // Skip onboarding only if it's NOT a signup flow and status is not explicitly "started" or missing
-        const isBypass = (!isSignupFlow && status !== 'started' && status !== 'profile_pending') || status === 'completed' || status === 'media_uploaded' || localStorage.getItem(`onboarding_completed_${uid}`) === 'true';
+        // Skip onboarding if NOT in signup flow, or if already completed
+        const isBypass = !isSignupFlow || status === 'completed' || status === 'media_uploaded' || localStorage.getItem(`onboarding_completed_${uid}`) === 'true';
 
         console.log('[App] Onboarding check:', { isSignupFlow, isBypass, status });
 

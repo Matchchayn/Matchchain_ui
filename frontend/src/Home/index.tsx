@@ -175,11 +175,11 @@ export default function Home({ session }: any) {
                   )}
                   {!videoReady && !videoError && (
                     <button
-                      onClick={handlePass}
+                      onClick={() => setVideoError(true)}
                       className="absolute bottom-4 right-4 z-10 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white text-[10px] font-black tracking-widest px-3 py-2 rounded-full border border-white/15 transition-all active:scale-95"
-                      title="Next profile"
+                      title="Skip video"
                     >
-                      NEXT
+                      SKIP VIDEO
                     </button>
                   )}
                   <video
