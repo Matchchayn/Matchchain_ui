@@ -11,13 +11,9 @@ interface Event {
     date: string
     location: string
     imageUrl?: string
-    attendees: {
-        _id: string
-        id?: string
-        firstName: string
-        lastName: string
-        avatarUrl?: string
-    }[]
+    // List endpoint may return attendees as ids for performance; details endpoint returns populated users.
+    attendees?: any[]
+    attendeeCount?: number
     maxAttendees: number
     createdBy: {
         _id: string
@@ -128,6 +124,24 @@ export default function Events({ session }: { session: any }) {
         })
     }
 
+    const getAttendeeCount = (event: Event) => {
+        if (typeof event.attendeeCount === 'number') return event.attendeeCount
+        if (Array.isArray(event.attendees)) return event.attendees.length
+        return 0
+    }
+
+    // List endpoint returns attendees as IDs; detail endpoint returns populated user objects.
+    const getAttendeeUsers = (event: Event) =>
+        (event.attendees ?? []).filter((a): a is { _id?: string; id?: string; firstName?: string; lastName?: string; avatarUrl?: string } =>
+            a != null && typeof a === 'object' && 'firstName' in a)
+
+    const isUserJoined = (event: Event) => {
+        const uid = session?.user?._id || session?.user?.id
+        if (!uid) return false
+        return (event.attendees ?? []).some(a =>
+            (typeof a === 'string' ? a : String((a as any)?._id ?? (a as any)?.id)) === String(uid))
+    }
+
     return (
         <div className="flex-1 flex flex-col">
             <main className="flex-1 pt-24 pb-24 px-4 sm:px-8 lg:px-12 xl:px-16 w-full max-w-[1600px] mx-auto">
@@ -190,7 +204,7 @@ export default function Events({ session }: { session: any }) {
                                         </div>
                                     </div>
                                     <div className="absolute top-4 right-4 bg-purple-600 px-3 py-1 rounded-full text-[9px] font-black text-white tracking-tighter shadow-xl">
-                                        {event.attendees.length} / {event.maxAttendees} Going
+                                        {getAttendeeCount(event)} / {event.maxAttendees} Going
                                     </div>
                                 </div>
 
@@ -261,16 +275,16 @@ export default function Events({ session }: { session: any }) {
 
                                     <div className="flex items-center justify-between gap-4">
                                         <div className="flex -space-x-3 overflow-hidden">
-                                            {event.attendees.slice(0, 3).map((att, idx) => (
+                                            {getAttendeeUsers(event).slice(0, 3).map((att, idx) => (
                                                 <div
-                                                    key={att._id || idx}
+                                                    key={att._id || att.id || idx}
                                                     className="w-10 h-10 rounded-full border-2 border-[#090a1e] bg-[#1a1c3a] flex items-center justify-center overflow-hidden relative group/pfp shadow-lg transition-transform hover:scale-110 hover:z-10"
-                                                    title={`${att.firstName} ${att.lastName}`}
+                                                    title={`${att.firstName ?? ''} ${att.lastName ?? ''}`}
                                                 >
                                                     {att.avatarUrl ? (
                                                         <img
                                                             src={att.avatarUrl}
-                                                            alt={att.firstName}
+                                                            alt={att.firstName ?? 'Attendee'}
                                                             className="w-full h-full object-cover"
                                                         />
                                                     ) : (
@@ -281,17 +295,17 @@ export default function Events({ session }: { session: any }) {
 
                                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/pfp:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                                         <span className="text-[6px] text-white font-black uppercase text-center leading-none px-1">
-                                                            {att.firstName}
+                                                            {att.firstName ?? ''}
                                                         </span>
                                                     </div>
                                                 </div>
                                             ))}
-                                            {event.attendees.length > 3 && (
+                                            {((event.attendees ?? []).length > 3) && (
                                                 <div className="w-10 h-10 rounded-full border-2 border-[#090a1e] bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-[10px] text-white font-black shadow-lg">
-                                                    +{event.attendees.length - 3}
+                                                    +{(event.attendees ?? []).length - 3}
                                                 </div>
                                             )}
-                                            {event.attendees.length === 0 && (
+                                            {((event.attendees ?? []).length === 0) && (
                                                 <div className="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-full border border-white/10">
                                                     <div className="w-6 h-6 rounded-full border border-dashed border-gray-600 bg-transparent flex items-center justify-center text-[10px] text-gray-600">
                                                         ?
@@ -303,15 +317,15 @@ export default function Events({ session }: { session: any }) {
 
                                         <button
                                             onClick={(e) => handleJoinEvent(e, event._id)}
-                                            disabled={processingId === event._id || event.attendees.some(a => (a._id || a.id) === (session?.user?._id || session?.user?.id))}
-                                            className={`flex-1 py-3.5 px-4 rounded-xl font-black text-[10px] tracking-widest transition-all active:scale-95 flex items-center justify-center min-h-[44px] ${event.attendees.some(a => (a._id || a.id) === (session?.user?._id || session?.user?.id))
+                                            disabled={processingId === event._id || isUserJoined(event)}
+                                            className={`flex-1 py-3.5 px-4 rounded-xl font-black text-[10px] tracking-widest transition-all active:scale-95 flex items-center justify-center min-h-[44px] ${isUserJoined(event)
                                                 ? 'bg-green-500/10 text-green-500 border border-green-500/20 cursor-default opacity-80'
                                                 : 'bg-white text-black hover:bg-gray-200 shadow-xl shadow-white/5'
                                                 }`}
                                         >
                                             {processingId === event._id ? (
                                                 <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                                            ) : event.attendees.some(a => (a._id || a.id) === (session?.user?._id || session?.user?.id)) ? (
+                                            ) : isUserJoined(event) ? (
                                                 '✓ Registered'
                                             ) : (
                                                 'Join Event'

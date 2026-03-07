@@ -15,6 +15,8 @@ export default function Stories({ layout = 'mobile' }: StoriesProps) {
   const [statuses, setStatuses] = useState<Status[]>(storiesService.getStories())
   const [uploading, setUploading] = useState(false)
   const [viewingStatus, setViewingStatus] = useState<Status[] | null>(null)
+  const [composer, setComposer] = useState<{ file: File; previewUrl: string } | null>(null)
+  const [captionDraft, setCaptionDraft] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { showAlert } = useAlert()
 
@@ -44,76 +46,148 @@ export default function Stories({ layout = 'mobile' }: StoriesProps) {
     }
 
     try {
-      setUploading(true)
-      const promptResult = window.prompt('Add a caption to your status (optional):')
-      const caption = promptResult || '' // Ensure it's never null (if cancelled)
+      // Open an in-app composer instead of using window.prompt (no "localhost says" dialog).
+      const previewUrl = URL.createObjectURL(file)
+      setCaptionDraft('')
+      setComposer({ file, previewUrl })
+    } catch (err: any) {
+      console.error('Status upload failed:', err)
+      showAlert(err.message || 'Status upload failed', 'error')
+    } finally {
+      // Clear file input
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
-      showAlert('Saving status to MatchChayn Database...', 'info')
+  const closeComposer = () => {
+    if (composer?.previewUrl) URL.revokeObjectURL(composer.previewUrl)
+    setComposer(null)
+    setCaptionDraft('')
+  }
 
-      // Convert to Base64 and compress
-      const compressImage = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              const MAX_WIDTH = 800;
-              const MAX_HEIGHT = 800;
-              let width = img.width;
-              let height = img.height;
+  // Compress image client-side so upload finishes quickly (max 1024px, JPEG ~0.8).
+  const compressForStatus = (file: File): Promise<{ blob: Blob; fileName: string }> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = (e) => {
+        const img = new Image()
+        img.src = (e.target?.result as string) ?? ''
+        img.onload = () => {
+          const MAX = 1024
+          let w = img.width
+          let h = img.height
+          if (w > h && w > MAX) {
+            h = (h * MAX) / w
+            w = MAX
+          } else if (h > MAX) {
+            w = (w * MAX) / h
+            h = MAX
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = w
+          canvas.height = h
+          const ctx = canvas.getContext('2d')
+          if (!ctx) return reject(new Error('Canvas not supported'))
+          ctx.drawImage(img, 0, 0, w, h)
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) return reject(new Error('Compress failed'))
+              resolve({ blob, fileName: `status-${Date.now()}.jpg` })
+            },
+            'image/jpeg',
+            0.82
+          )
+        }
+        img.onerror = () => reject(new Error('Image load failed'))
+      }
+      reader.onerror = () => reject(new Error('File read failed'))
+    })
+  }
 
-              if (width > height) {
-                if (width > MAX_WIDTH) {
-                  height *= MAX_WIDTH / width;
-                  width = MAX_WIDTH;
-                }
-              } else {
-                if (height > MAX_HEIGHT) {
-                  width *= MAX_HEIGHT / height;
-                  height = MAX_HEIGHT;
-                }
-              }
+  const submitStatus = async () => {
+    const token = localStorage.getItem('token')
+    const userStr = localStorage.getItem('user')
+    if (!composer?.file || !token || !userStr) return
 
-              canvas.width = width;
-              canvas.height = height;
-              const ctx = canvas.getContext('2d');
-              ctx?.drawImage(img, 0, 0, width, height);
-              resolve(canvas.toDataURL('image/jpeg', 0.7)); // Compress to 70% quality
-            };
-            img.onerror = reject;
-          };
-          reader.onerror = reject;
-        });
-      };
+    const caption = captionDraft.trim()
+    setUploading(true)
 
-      const base64String = await compressImage(file);
+    // Optimistic UI: show the new status immediately using the local preview URL.
+    let optimisticId = `temp_${Date.now()}`
+    try {
+      const me = JSON.parse(userStr)
+      const optimistic: Status = {
+        _id: optimisticId,
+        user: {
+          _id: me._id || me.id,
+          firstName: me.firstName || 'You',
+          lastName: me.lastName || '',
+          avatarUrl: me.avatarUrl || null,
+        },
+        imageUrl: composer.previewUrl,
+        text: caption || undefined,
+        createdAt: new Date().toISOString(),
+      }
 
+      const next = [optimistic, ...statuses]
+      setStatuses(next)
+      storiesService.setStories(next)
+
+      // Compress image first so upload is fast
+      const { blob, fileName } = await compressForStatus(composer.file)
+
+      // 1) Get presigned URL for R2 upload
+      const urlRes = await fetch(`${API_BASE_URL}/api/media/presigned-url`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          fileName,
+          fileType: 'image/jpeg'
+        })
+      })
+      if (!urlRes.ok) throw new Error('Failed to prepare upload')
+      const { uploadUrl, publicUrl } = await urlRes.json()
+
+      // 2) Upload compressed image to R2
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: blob,
+        headers: { 'Content-Type': 'image/jpeg' }
+      })
+      if (!putRes.ok) throw new Error('Upload failed')
+
+      // 3) Save status record
       const saveRes = await fetch(`${API_BASE_URL}/api/status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ imageUrl: base64String, text: caption })
+        body: JSON.stringify({ imageUrl: publicUrl, ...(caption ? { text: caption } : {}) })
       })
 
-      if (saveRes.ok) {
-        showAlert('Status uploaded successfully', 'success')
-        fetchStatuses()
-      } else {
-        const data = await saveRes.json()
-        showAlert(data.message || 'Failed to save status', 'error')
+      if (!saveRes.ok) {
+        const data = await saveRes.json().catch(() => ({}))
+        throw new Error(data.message || 'Failed to save status')
       }
+
+      // Refresh from server to replace optimistic item with real one
+      await fetchStatuses()
+      showAlert('Status posted', 'success')
     } catch (err: any) {
+      // Roll back optimistic item
+      const rolledBack = statuses.filter(s => s._id !== optimisticId)
+      setStatuses(rolledBack)
+      storiesService.setStories(rolledBack)
       console.error('Status upload failed:', err)
       showAlert(err.message || 'Status upload failed', 'error')
     } finally {
       setUploading(false)
-      // Clear file input
-      if (fileInputRef.current) fileInputRef.current.value = ''
+      closeComposer()
     }
   }
 
@@ -198,6 +272,48 @@ export default function Stories({ layout = 'mobile' }: StoriesProps) {
           </button>
         ))}
       </div>
+
+      {/* Status Composer Modal */}
+      {composer && createPortal(
+        <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0b0c22] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="p-4 flex items-center justify-between border-b border-white/10">
+              <div className="text-white font-black tracking-widest text-xs">NEW STATUS</div>
+              <button onClick={closeComposer} className="text-white/70 hover:text-white transition-colors px-2 py-1 text-sm">
+                Close
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div className="w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/10">
+                <img src={composer.previewUrl} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black tracking-widest text-white/60">
+                  CAPTION (OPTIONAL)
+                </label>
+                <textarea
+                  value={captionDraft}
+                  onChange={(e) => setCaptionDraft(e.target.value)}
+                  placeholder="Add a caption…"
+                  rows={2}
+                  className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-purple-500/60 resize-none"
+                />
+              </div>
+
+              <button
+                onClick={submitStatus}
+                disabled={uploading}
+                className="w-full bg-white text-black font-black tracking-widest py-3 rounded-xl hover:bg-gray-200 transition-all active:scale-[0.99] disabled:opacity-60"
+              >
+                {uploading ? 'POSTING…' : 'POST'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Viewer Modal */}
       {viewingStatus && createPortal(

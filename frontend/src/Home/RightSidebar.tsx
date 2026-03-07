@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchLikes, fetchMatches } from '../utils/likesHandler'
+import { fetchLikes, fetchMatches, getLikesCache, getMatchesCache } from '../utils/likesHandler'
 import Stories from './Stories'
 
 function SidebarAvatar({ src, name }: { src?: string; name?: string }) {
@@ -30,12 +30,35 @@ interface Match {
 
 export default function RightSidebar({ session, mobileView = false }: RightSidebarProps) {
   const [activeTab, setActiveTab] = useState<'matches' | 'likes'>('matches')
-  // Don't use stale module cache — always reload fresh signed URLs
-  const [matches, setMatches] = useState<Match[]>([])
-  const [likes, setLikes] = useState<Match[]>([])
-  const [matchCount, setMatchCount] = useState(0)
-  const [likeCount, setLikeCount] = useState(0)
-  const [loading, setLoading] = useState(true)
+  
+  const [matches, setMatches] = useState<Match[]>(() => {
+    const c = getMatchesCache();
+    if (!c) return [];
+    return c.map((user: any) => ({
+      id: user._id,
+      name: `${user.firstName || 'User'} ${user.lastName || ''}`,
+      avatar: user.avatarUrl || '',
+      message: "It's a match!",
+      time: 'Just now'
+    }));
+  })
+
+  const [likes, setLikes] = useState<Match[]>(() => {
+    const c = getLikesCache();
+    if (!c) return [];
+    return c.map((user: any) => ({
+      id: user._id,
+      name: `${user.firstName || 'User'} ${user.lastName || ''}`,
+      avatar: user.avatarUrl || '',
+      message: 'SENT A MATCH REQUEST',
+      time: 'Just now'
+    }));
+  })
+
+  const [matchCount, setMatchCount] = useState(() => getMatchesCache()?.length || 0)
+  const [likeCount, setLikeCount] = useState(() => getLikesCache()?.length || 0)
+  
+  const [loading, setLoading] = useState(() => !(getMatchesCache() && getLikesCache()))
   const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -51,13 +74,15 @@ export default function RightSidebar({ session, mobileView = false }: RightSideb
   }, [session])
 
   const loadData = async (isSilent = false) => {
-    if (!isSilent) setLoading(true)
+    if (!isSilent && matches.length === 0 && likes.length === 0) {
+      setLoading(true)
+    }
     try {
       const token = session.token;
 
       const [likesData, matchesData] = await Promise.all([
-        fetchLikes(token),
-        fetchMatches(token)
+        fetchLikes(token, isSilent),
+        fetchMatches(token, isSilent)
       ]);
 
       const formattedLikes = likesData.map((user: any) => ({

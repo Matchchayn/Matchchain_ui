@@ -102,7 +102,7 @@ export default function Messages({ session }: MessagesProps) {
 
   async function fetchConversations(isInitial = false) {
     try {
-      if (isInitial) setLoading(true)
+      if (isInitial && conversations.length === 0) setLoading(true)
       const token = localStorage.getItem('token')
       const res = await fetch(`${API_BASE_URL}/api/conversations`, {
         headers: { 'Authorization': `Bearer ${token}` }

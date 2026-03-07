@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../config'
 import { safeLocalStorageSet } from '../utils/storageUtils';
-import { fetchLikes, fetchMatches, likeProfile, fetchLikedProfiles } from '../utils/likesHandler'
+import { fetchLikes, fetchMatches, likeProfile, fetchLikedProfiles, getLikesCache, getMatchesCache, getLikedProfilesCache } from '../utils/likesHandler'
 import { useAlert } from '../hooks/useAlert'
 
 // Smart avatar that shows initials, then swaps to photo when loaded successfully
@@ -35,27 +35,43 @@ export default function MatchesLikes({ session }: { session: any }) {
   const { showAlert } = useAlert()
   // Don't pre-load from localStorage — signed URLs expire and cause broken images.
   // Always start empty so the fresh signed URLs from the backend are fetched immediately.
-  const [matches, setMatches] = useState<any[]>([])
-  const [likes, setLikes] = useState<any[]>([])
-  const [liked, setLiked] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [matches, setMatches] = useState<any[]>(() => {
+    const c = getMatchesCache();
+    return c ? c.map((u:any) => ({...u, id: String(u._id || u.id)})) : [];
+  })
+  const [likes, setLikes] = useState<any[]>(() => {
+    const c = getLikesCache();
+    return c ? c.map((u:any) => ({...u, id: String(u._id || u.id)})) : [];
+  })
+  const [liked, setLiked] = useState<any[]>(() => {
+    const c = getLikedProfilesCache();
+    return c ? c.map((u:any) => ({...u, id: String(u._id || u.id)})) : [];
+  })
+  const hasCachedData = () => !!(getMatchesCache()?.length || getLikesCache()?.length || getLikedProfilesCache()?.length)
+  const [loading, setLoading] = useState(() => !hasCachedData())
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'matches' | 'sent' | 'received'>('matches')
 
   useEffect(() => {
-    fetchData(false)
+    // When returning from Messages tab, show cached data and refresh in background (no spinner).
+    fetchData(hasCachedData())
   }, [])
 
   const fetchData = async (isSilent = false) => {
     try {
-      if (!isSilent) setLoading(true)
+      if (!isSilent && matches.length === 0 && likes.length === 0 && liked.length === 0) {
+        // Only set loading screen if we have absolutely nothing to show
+        setLoading(true)
+      } else {
+        // Keep the UI visible, but maybe show a tiny background sync indicator if we wanted to
+      }
       const token = localStorage.getItem('token')
       if (!token) return;
 
       const [likesData, matchesData, sentData] = await Promise.all([
-        fetchLikes(token),
-        fetchMatches(token),
-        fetchLikedProfiles(token)
+        fetchLikes(token, isSilent),
+        fetchMatches(token, isSilent),
+        fetchLikedProfiles(token, isSilent)
       ]);
 
       const formattedLikes = likesData.map((user: any) => ({
@@ -87,22 +103,31 @@ export default function MatchesLikes({ session }: { session: any }) {
     }
   }
 
-  const handleAccept = async (e: React.MouseEvent, userId: string) => {
+  const handleAccept = async (e: React.MouseEvent, user: { id: string; [k: string]: any }) => {
     e.stopPropagation()
     const token = localStorage.getItem('token')
     if (!token) return
 
+    const userId = user.id
+    // Optimistic: remove from Received list immediately so Accept feels instant
+    setLikes(prev => prev.filter(u => u.id !== userId))
+
     try {
-      setProcessingId(userId)
       const result = await likeProfile(token, userId)
       if (result.success) {
         showAlert("It's a match!", 'success')
-        fetchData(true)
+        if (result.isMatch) {
+          setMatches(prev => [{ ...user, id: userId }, ...prev])
+        }
+        fetchData(true) // Refresh in background (no await)
       } else {
         showAlert(result.error || 'Failed to accept', 'error')
+        setLikes(prev => [...prev, user]) // Roll back on failure
       }
     } catch (error) {
       console.error('Error accepting match:', error)
+      showAlert('Failed to accept', 'error')
+      setLikes(prev => [...prev, user]) // Roll back on error
     } finally {
       setProcessingId(null)
     }
@@ -226,13 +251,10 @@ export default function MatchesLikes({ session }: { session: any }) {
                         </h3>
                         <div className="flex gap-2">
                           <button
-                            onClick={(e) => handleAccept(e, user.id)}
-                            disabled={processingId === user.id}
-                            className="flex-1 bg-purple-600 hover:bg-purple-700 text-[10px] font-black uppercase py-2 rounded-xl text-white transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center min-h-[32px]"
+                            onClick={(e) => handleAccept(e, user)}
+                            className="flex-1 bg-purple-600 hover:bg-purple-700 text-[10px] font-black uppercase py-2 rounded-xl text-white transition-all active:scale-95 flex items-center justify-center min-h-[32px]"
                           >
-                            {processingId === user.id ? (
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            ) : 'Accept'}
+                            Accept
                           </button>
                           <button
                             onClick={(e) => handleReject(e, user.id)}
